@@ -1,4 +1,4 @@
-package UserHandler
+package Handlers
 
 import (
 	"database/sql"
