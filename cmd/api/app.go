@@ -15,9 +15,11 @@ import (
 
 // App encapsulates Environment, Router, and DB connections
 type App struct {
-	Router      *mux.Router
-	DB          *Database.DBExecutor
-	UserHandler *Handlers.UserHandler
+	Router        *mux.Router
+	DB            *Database.DBExecutor
+	UserHandler   *Handlers.UserHandler
+	ReviewHandler *Handlers.ReviewHandler
+	UnitHandler   *Handlers.UnitHandler
 }
 
 // Initialize sets up the database connection and the router
@@ -30,12 +32,16 @@ func (a *App) Initialize(user, password, dbname string) {
 	}
 	a.Router = mux.NewRouter()
 	a.UserHandler = Handlers.NewUserHandler(a.DB.Db)
+	a.UnitHandler = Handlers.NewUnitHandler(a.DB.Db)
+	a.ReviewHandler = Handlers.NewReviewHandler(a.DB.Db)
 	a.initializeRoutes()
 }
 
 // InitializeRoutes sets up the routes for the application
 func (a *App) initializeRoutes() {
-	Routes.RegisterRoutes(a.Router, a.UserHandler)
+	Routes.RegisterUserRoutes(a.Router, a.UserHandler)
+	Routes.RegisterReviewRoutes(a.Router, a.ReviewHandler)
+	Routes.RegisterUnitRoutes(a.Router, a.UnitHandler)
 }
 
 // Run starts the server on a specified port
