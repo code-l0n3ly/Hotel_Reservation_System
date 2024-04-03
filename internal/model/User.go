@@ -4,16 +4,15 @@ import (
 	"errors"
 	"net/mail"
 	"regexp"
-	"time"
 )
 
 type User struct {
-	UserID     string    `json:"userID"`
-	Name       string    `json:"name"`
-	Email      string    `json:"email,omitempty"`
-	Password   string    `json:"password"`
-	CreateTime time.Time `json:"createTime,omitempty"`
-	UserRole   string    `json:"userRole"`
+	UserID     string `json:"userID"`
+	Name       string `json:"name"`
+	Email      string `json:"email,omitempty"`
+	Password   string `json:"password"`
+	CreateTime string `json:"createTime,omitempty"`
+	UserRole   string `json:"userRole"`
 }
 
 func (u *User) Validate() error {
