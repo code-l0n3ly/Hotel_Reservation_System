@@ -8,5 +8,5 @@ import (
 func main() {
 	app := App.App{}
 	app.Initialize("root", "", "mydb")
-	app.Run(":8080")
+	app.Run("0.0.0.0:3000")
 }
