@@ -46,7 +46,7 @@ func (UserHandler *UserHandler) SetHighestUserID() {
 }
 
 func (UserHandler *UserHandler) LoadUsersIntoCache() error {
-	rows, err := UserHandler.db.Query(`SELECT UserID, Name, Email, UserRole FROM User`)
+	rows, err := UserHandler.db.Query(`SELECT * FROM User`)
 	if err != nil {
 		return err
 	}
