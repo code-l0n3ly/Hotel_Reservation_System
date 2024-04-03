@@ -119,12 +119,7 @@ func (UserHandler *UserHandler) GetUserHandler(w http.ResponseWriter, r *http.Re
 }
 
 func (UserHandler *UserHandler) GetUsersHandler(w http.ResponseWriter, r *http.Request) {
-	err := UserHandler.LoadUsersIntoCache()
-	if err != nil {
-		http.Error(w, "Failed to retrieve users", http.StatusInternalServerError)
-		return
-	}
-
+	UserHandler.LoadUsersIntoCache()
 	var users []Entities.User
 	for _, user := range UserHandler.cache {
 		users = append(users, user)
