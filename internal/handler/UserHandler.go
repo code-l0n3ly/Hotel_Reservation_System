@@ -54,7 +54,7 @@ func (UserHandler *UserHandler) LoadUsersIntoCache() error {
 
 	for rows.Next() {
 		var user Entities.User
-		if err := rows.Scan(&user.UserID, &user.Name, &user.Email, &user.UserRole); err != nil {
+		if err := rows.Scan(&user.UserID, &user.Name, &user.Email, &user.Password, &user.CreateTime, &user.UserRole); err != nil {
 			return err
 		}
 		fmt.Println(user)
