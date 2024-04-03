@@ -118,6 +118,21 @@ func (UserHandler *UserHandler) GetUserHandler(w http.ResponseWriter, r *http.Re
 	json.NewEncoder(w).Encode(user)
 }
 
+func (UserHandler *UserHandler) GetUsersHandler(w http.ResponseWriter, r *http.Request) {
+	err := UserHandler.LoadUsersIntoCache()
+	if err != nil {
+		http.Error(w, "Failed to retrieve users", http.StatusInternalServerError)
+		return
+	}
+
+	var users []Entities.User
+	for _, user := range UserHandler.cache {
+		users = append(users, user)
+	}
+
+	json.NewEncoder(w).Encode(users)
+}
+
 func (UserHandler *UserHandler) UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	userID := params["id"]
