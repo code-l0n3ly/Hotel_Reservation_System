@@ -23,8 +23,8 @@ type App struct {
 }
 
 // Initialize sets up the database connection and the router
-func (a *App) Initialize(user, password, dbname string) {
-	connectionString := fmt.Sprintf("%s:%s@/%s", user, password, dbname)
+func (a *App) Initialize(user, password, address, dbname string) {
+	connectionString := fmt.Sprintf("%s:%s@tcp(%s)/%s", user, password, address, dbname)
 	var err error
 	a.DB, err = Database.InitDB(connectionString)
 	if err != nil {
