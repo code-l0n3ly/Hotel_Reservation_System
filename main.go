@@ -14,6 +14,6 @@ func main() {
 	if port == "" {
 		port = "8080" // Default to 8080 if not specified
 	}
-	addr := ":" + port
+	addr := "0.0.0.0:" + port
 	app.Run(addr)
 }
