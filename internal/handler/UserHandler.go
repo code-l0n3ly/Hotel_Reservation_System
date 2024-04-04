@@ -70,7 +70,9 @@ func (UserHandler *UserHandler) GetUserByID(userID string) (Entities.User, bool)
 }
 
 func (UserHandler *UserHandler) CreateUserHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Origin", "*")                                                                                   // Allow any origin
+	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")                                                    // Allowed methods
+	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization") // Allowed headers
 	UserHandler.LoadUsersIntoCache()
 	var user Entities.User
 	err := json.NewDecoder(r.Body).Decode(&user)
