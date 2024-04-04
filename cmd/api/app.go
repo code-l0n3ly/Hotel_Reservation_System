@@ -48,7 +48,7 @@ func (a *App) initializeRoutes() {
 // Run starts the server on a specified port
 func (a *App) Run(addr string) {
 	log.Printf("Listening on %s\n", addr)
-	handler := cors.Default().Handler(a.Router)
+	handler := cors.AllowAll().Handler(a.Router)
 	log.Fatal(http.ListenAndServe(addr, handler))
 }
 
