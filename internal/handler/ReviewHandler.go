@@ -64,6 +64,7 @@ func (ReviewHandler *ReviewHandler) LoadReviews() error {
 }
 
 func (ReviewHandler *ReviewHandler) CreateReview(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	var review Entities.Review
 	ReviewHandler.LoadReviews()
 	ReviewHandler.GenerateUniqueReviewID()
@@ -91,6 +92,7 @@ func (ReviewHandler *ReviewHandler) CreateReview(w http.ResponseWriter, r *http.
 }
 
 func (ReviewHandler *ReviewHandler) GetReview(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	params := mux.Vars(r)
 	reviewID := params["id"]
 
@@ -110,6 +112,7 @@ func (ReviewHandler *ReviewHandler) GetReview(w http.ResponseWriter, r *http.Req
 }
 
 func (ReviewHandler *ReviewHandler) UpdateReview(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	params := mux.Vars(r)
 	reviewID := params["id"]
 	ReviewHandler.LoadReviews()
@@ -138,6 +141,7 @@ func (ReviewHandler *ReviewHandler) UpdateReview(w http.ResponseWriter, r *http.
 }
 
 func (ReviewHandler *ReviewHandler) DeleteReview(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	params := mux.Vars(r)
 	reviewID := params["id"]
 	ReviewHandler.LoadReviews()

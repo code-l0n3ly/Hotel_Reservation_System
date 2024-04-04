@@ -64,6 +64,7 @@ func (UnitHandler *UnitHandler) LoadUnits() error {
 }
 
 func (UnitHandler *UnitHandler) CreateUnit(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	var unit Entities.Unit
 	UnitHandler.LoadUnits()
 	unit.UnitID = UnitHandler.GenerateUniqueUnitID()
@@ -91,6 +92,7 @@ func (UnitHandler *UnitHandler) CreateUnit(w http.ResponseWriter, r *http.Reques
 }
 
 func (UnitHandler *UnitHandler) GetUnit(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	params := mux.Vars(r)
 	unitID := params["id"]
 	UnitHandler.LoadUnits()
@@ -110,6 +112,7 @@ func (UnitHandler *UnitHandler) GetUnit(w http.ResponseWriter, r *http.Request) 
 }
 
 func (UnitHandler *UnitHandler) UpdateUnit(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	params := mux.Vars(r)
 	unitID := params["id"]
 	UnitHandler.LoadUnits()
@@ -138,6 +141,7 @@ func (UnitHandler *UnitHandler) UpdateUnit(w http.ResponseWriter, r *http.Reques
 }
 
 func (UnitHandler *UnitHandler) DeleteUnit(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	params := mux.Vars(r)
 	unitID := params["id"]
 	UnitHandler.LoadUnits()
