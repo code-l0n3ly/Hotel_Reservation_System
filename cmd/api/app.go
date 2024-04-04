@@ -11,6 +11,7 @@ import (
 	Handlers "GraduationProject.com/m/internal/handler"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
+	"github.com/rs/cors"
 )
 
 // App encapsulates Environment, Router, and DB connections
@@ -47,7 +48,8 @@ func (a *App) initializeRoutes() {
 // Run starts the server on a specified port
 func (a *App) Run(addr string) {
 	log.Printf("Listening on %s\n", addr)
-	log.Fatal(http.ListenAndServe(addr, a.Router))
+	handler := cors.Default().Handler(a.Router)
+	log.Fatal(http.ListenAndServe(addr, handler))
 }
 
 // In app.go

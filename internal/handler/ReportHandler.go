@@ -63,7 +63,6 @@ func (ReportHandler *ReportHandler) LoadReports() error {
 }
 
 func (ReportHandler *ReportHandler) CreateReport(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	var report Entities.Report
 	err := json.NewDecoder(r.Body).Decode(&report)
 	if err != nil {
@@ -89,7 +88,6 @@ func (ReportHandler *ReportHandler) CreateReport(w http.ResponseWriter, r *http.
 }
 
 func (ReportHandler *ReportHandler) GetReport(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	params := mux.Vars(r)
 	reportID := params["id"]
 
@@ -109,7 +107,6 @@ func (ReportHandler *ReportHandler) GetReport(w http.ResponseWriter, r *http.Req
 }
 
 func (ReportHandler *ReportHandler) UpdateReport(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	params := mux.Vars(r)
 	reportID := params["id"]
 	ReportHandler.LoadReports()
@@ -138,7 +135,6 @@ func (ReportHandler *ReportHandler) UpdateReport(w http.ResponseWriter, r *http.
 }
 
 func (ReportHandler *ReportHandler) DeleteReport(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
 	params := mux.Vars(r)
 	reportID := params["id"]
 	ReportHandler.LoadReports()
