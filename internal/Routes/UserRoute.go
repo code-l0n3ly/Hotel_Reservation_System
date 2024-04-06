@@ -8,6 +8,7 @@ import (
 // RegisterRoutes sets up the routes for the application
 func RegisterUserRoutes(router *mux.Router, UserHandler *handler.UserHandler) {
 	router.HandleFunc("/users/create", UserHandler.CreateUserHandler).Methods("POST")
+	router.HandleFunc("/users/login", UserHandler.LoginHandler).Methods("POST")
 	router.HandleFunc("/users", UserHandler.GetUsersHandler).Methods("GET")
 	router.HandleFunc("/users/{id}", UserHandler.GetUserHandler).Methods("GET")
 	router.HandleFunc("/users/{id}", UserHandler.UpdateUserHandler).Methods("PUT")

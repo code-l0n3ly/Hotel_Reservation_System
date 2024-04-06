@@ -26,6 +26,12 @@ func NewUserHandler(db *sql.DB) *UserHandler {
 	}
 }
 
+type Response struct {
+	Status  string      `json:"status"`
+	Message string      `json:"message"`
+	Data    interface{} `json:"data,omitempty"`
+}
+
 func (UserHandler *UserHandler) GenerateUniqueUserID() string {
 	UserHandler.UserIdReference++
 	return fmt.Sprintf("%d", UserHandler.UserIdReference)
@@ -85,7 +91,16 @@ func (UserHandler *UserHandler) CreateUserHandler(w http.ResponseWriter, r *http
 		http.Error(w, "User already exists", http.StatusBadRequest)
 		return
 	}
-
+	if err := user.Validate(); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	} else if !user.IsEmailValid() {
+		http.Error(w, "Email is not valid", http.StatusBadRequest)
+		return
+	} else if !user.IsPasswordStrong() {
+		http.Error(w, "Password is not strong enough", http.StatusBadRequest)
+		return
+	}
 	query := `INSERT INTO User (UserID, Name, Email, Password) VALUES (?, ?, ?, ?)`
 	_, err = UserHandler.db.Exec(query, user.UserID, user.Name, user.Email, user.Password)
 	if err != nil {
@@ -96,7 +111,15 @@ func (UserHandler *UserHandler) CreateUserHandler(w http.ResponseWriter, r *http
 	// Add the new user to the cache
 	UserHandler.LoadUsersIntoCache()
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(UserHandler.cache[user.UserID]) // Respond with the created user object
+	response := Response{
+		Status:  "success",
+		Message: "User created successfully",
+		Data:    UserHandler.cache[user.UserID],
+	}
+
+	// Write the response
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(response)
 }
 
 func (UserHandler *UserHandler) GetUserHandler(w http.ResponseWriter, r *http.Request) {
@@ -115,7 +138,12 @@ func (UserHandler *UserHandler) GetUserHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	json.NewEncoder(w).Encode(user)
+	response := Response{
+		Status:  "success",
+		Message: "User retrieved successfully",
+		Data:    user,
+	}
+	json.NewEncoder(w).Encode(response)
 }
 
 func (UserHandler *UserHandler) GetUsersHandler(w http.ResponseWriter, r *http.Request) {
@@ -131,7 +159,7 @@ func (UserHandler *UserHandler) GetUsersHandler(w http.ResponseWriter, r *http.R
 func (UserHandler *UserHandler) UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	userID := params["id"]
-
+	UserHandler.LoadUsersIntoCache()
 	var user Entities.User
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
@@ -145,15 +173,19 @@ func (UserHandler *UserHandler) UpdateUserHandler(w http.ResponseWriter, r *http
 		http.Error(w, "Failed to update user", http.StatusInternalServerError)
 		return
 	}
-
+	UserHandler.LoadUsersIntoCache()
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode("User updated successfully")
+	response := Response{
+		Status:  "success",
+		Message: "User updated successfully",
+	}
+	json.NewEncoder(w).Encode(response)
 }
 
 func (UserHandler *UserHandler) DeleteUserHandler(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	userID := params["id"]
-
+	UserHandler.LoadUsersIntoCache()
 	query := `DELETE FROM User WHERE UserID = ?`
 	_, err := UserHandler.db.Exec(query, userID)
 	if err != nil {
@@ -162,5 +194,58 @@ func (UserHandler *UserHandler) DeleteUserHandler(w http.ResponseWriter, r *http
 	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode("User deleted successfully")
+	response := Response{
+		Status:  "success",
+		Message: "User deleted successfully",
+	}
+	UserHandler.LoadUsersIntoCache()
+	json.NewEncoder(w).Encode(response)
+}
+
+func (UserHandler *UserHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
+	// Parse and decode the request body into a new 'User' struct
+	var user Entities.User
+	err := json.NewDecoder(r.Body).Decode(&user)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	UserHandler.LoadUsersIntoCache()
+	// Get the existing user details from the database
+	var existingUser Entities.User
+	query := `SELECT UserID, Name, Email, Password FROM User WHERE Email = ?`
+	err = UserHandler.db.QueryRow(query, user.Email).Scan(&existingUser.UserID, &existingUser.Name, &existingUser.Email, &existingUser.Password)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// If the user does not exist, send an appropriate response message
+			response := Response{
+				Status:  "error",
+				Message: "User not found",
+			}
+			w.WriteHeader(http.StatusUnauthorized)
+			json.NewEncoder(w).Encode(response)
+		} else {
+			http.Error(w, "Failed to retrieve user", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	// Compare the supplied password with the stored password
+	if user.Password != existingUser.Password {
+		// If the password does not match, send an appropriate response message
+		response := Response{
+			Status:  "error",
+			Message: "Invalid password",
+		}
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// If the password matches, send a success response
+	response := Response{
+		Status:  "success",
+		Message: "Logged in successfully",
+	}
+	json.NewEncoder(w).Encode(response)
 }
