@@ -8,6 +8,8 @@ import (
 type Unit struct {
 	UnitID               string    `json:"unitID"`
 	Images               [][]byte  `json:"images,omitempty"`
+	Description          string    `json:"description,omitempty"`
+	Rating               float32   `json:"rating,omitempty"`
 	PropertyID           string    `json:"propertyID"`
 	RentalPrice          int       `json:"rentalPrice"`
 	OccupancyStatus      string    `json:"occupancyStatus"`

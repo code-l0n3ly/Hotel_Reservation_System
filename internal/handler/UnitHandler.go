@@ -69,25 +69,40 @@ func (UnitHandler *UnitHandler) CreateUnit(w http.ResponseWriter, r *http.Reques
 	unit.UnitID = UnitHandler.GenerateUniqueUnitID()
 	err := json.NewDecoder(r.Body).Decode(&unit)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		response := Response{
+			Status:  "error",
+			Message: err.Error(),
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
 		return
 	}
 
 	err = unit.Validate()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		response := Response{
+			Status:  "error",
+			Message: err.Error(),
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
 		return
 	}
 
-	query := `INSERT INTO Unit (UnitID, PropertyID, RentalPrice, OccupancyStatus, StructuralProperties, CreateTime) VALUES (?, ?, ?, ?, ?, ?)`
-	_, err = UnitHandler.db.Exec(query, unit.UnitID, unit.PropertyID, unit.RentalPrice, unit.OccupancyStatus, unit.StructuralProperties, unit.CreateTime)
+	query := `INSERT INTO Unit (UnitID, Images, Description, Rating, PropertyID, RentalPrice, OccupancyStatus, StructuralProperties, CreateTime) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	_, err = UnitHandler.db.Exec(query, unit.UnitID, unit.Images, unit.Description, unit.Rating, unit.PropertyID, unit.RentalPrice, unit.OccupancyStatus, unit.StructuralProperties, unit.CreateTime)
 	if err != nil {
 		http.Error(w, "Failed to create unit", http.StatusInternalServerError)
 		return
 	}
 	UnitHandler.LoadUnits()
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(UnitHandler.cache[unit.UnitID]) // Respond with the created unit object
+	response := Response{
+		Status:  "success",
+		Message: "Unit created successfully",
+		Data:    UnitHandler.cache[unit.UnitID],
+	}
+	json.NewEncoder(w).Encode(response)
 }
 
 func (UnitHandler *UnitHandler) GetUnit(w http.ResponseWriter, r *http.Request) {
@@ -116,20 +131,35 @@ func (UnitHandler *UnitHandler) UpdateUnit(w http.ResponseWriter, r *http.Reques
 	var unit Entities.Unit
 	err := json.NewDecoder(r.Body).Decode(&unit)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		response := Response{
+			Status:  "error",
+			Message: err.Error(),
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
 		return
 	}
 
 	err = unit.Validate()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		response := Response{
+			Status:  "error",
+			Message: err.Error(),
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
 		return
 	}
 
 	query := `UPDATE Unit SET PropertyID = ?, RentalPrice = ?, OccupancyStatus = ?, StructuralProperties = ?, CreateTime = ? WHERE UnitID = ?`
 	_, err = UnitHandler.db.Exec(query, unit.PropertyID, unit.RentalPrice, unit.OccupancyStatus, unit.StructuralProperties, unit.CreateTime, unitID)
 	if err != nil {
-		http.Error(w, "Failed to update unit", http.StatusInternalServerError)
+		response := Response{
+			Status:  "Failed to update unit",
+			Message: err.Error(),
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
 		return
 	}
 
@@ -144,7 +174,12 @@ func (UnitHandler *UnitHandler) DeleteUnit(w http.ResponseWriter, r *http.Reques
 	query := `DELETE FROM Unit WHERE UnitID = ?`
 	_, err := UnitHandler.db.Exec(query, unitID)
 	if err != nil {
-		http.Error(w, "Failed to delete unit", http.StatusInternalServerError)
+		response := Response{
+			Status:  "Failed to delete unit",
+			Message: err.Error(),
+		}
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
 		return
 	}
 	UnitHandler.LoadUnits()
