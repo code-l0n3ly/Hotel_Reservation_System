@@ -16,11 +16,17 @@ import (
 
 // App encapsulates Environment, Router, and DB connections
 type App struct {
-	Router        *mux.Router
-	DB            *Database.DBExecutor
-	UserHandler   *Handlers.UserHandler
-	ReviewHandler *Handlers.ReviewHandler
-	UnitHandler   *Handlers.UnitHandler
+	Router                      *mux.Router
+	DB                          *Database.DBExecutor
+	UserHandler                 *Handlers.UserHandler
+	ReviewHandler               *Handlers.ReviewHandler
+	UnitHandler                 *Handlers.UnitHandler
+	BookingHandler              *Handlers.BookingHandler
+	ReportHandler               *Handlers.ReportHandler
+	FinancialTransactionHandler *Handlers.FinancialTransactionHandler
+	MaintenanceTicketHandler    *Handlers.MaintenanceTicketHandler
+	PropertyHandler             *Handlers.PropertyHandler
+	MessageHandler              *Handlers.MessageHandler
 }
 
 // Initialize sets up the database connection and the router
@@ -43,6 +49,13 @@ func (a *App) initializeRoutes() {
 	Routes.RegisterUserRoutes(a.Router, a.UserHandler)
 	Routes.RegisterReviewRoutes(a.Router, a.ReviewHandler)
 	Routes.RegisterUnitRoutes(a.Router, a.UnitHandler)
+	Routes.RegisterBookingRoutes(a.Router, a.BookingHandler)
+	Routes.RegisterReportRoutes(a.Router, a.ReportHandler)
+	Routes.RegisterFinancialTransactionRoutes(a.Router, a.FinancialTransactionHandler)
+	Routes.RegisterMaintenanceTicketRoutes(a.Router, a.MaintenanceTicketHandler)
+	Routes.RegisterPropertyRoutes(a.Router, a.PropertyHandler)
+	Routes.RegisterMessageRoutes(a.Router, a.MessageHandler)
+
 }
 
 // Run starts the server on a specified port
