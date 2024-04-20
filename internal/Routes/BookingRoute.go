@@ -6,8 +6,8 @@ import (
 )
 
 func RegisterBookingRoutes(router *mux.Router, BookingHandler *handler.BookingHandler) {
-	router.HandleFunc("/booking/create", BookingHandler.CreateBookingHandler).Methods("POST")
-	router.HandleFunc("/booking/{id}", BookingHandler.GetBookingHandler).Methods("GET")
-	router.HandleFunc("/booking/{id}", BookingHandler.UpdateBookingHandler).Methods("PUT")
-	router.HandleFunc("/booking/{id}", BookingHandler.DeleteBookingHandler).Methods("DELETE")
+	router.HandleFunc("/booking/create", BookingHandler.CreateBooking).Methods("POST")
+	router.HandleFunc("/booking/{id}", BookingHandler.GetBooking).Methods("GET")
+	router.HandleFunc("/booking/{id}", BookingHandler.UpdateBooking).Methods("PUT")
+	router.HandleFunc("/booking/{id}", BookingHandler.DeleteBooking).Methods("DELETE")
 }
