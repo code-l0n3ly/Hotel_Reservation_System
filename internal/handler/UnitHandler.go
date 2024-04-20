@@ -151,3 +151,13 @@ func (UnitHandler *UnitHandler) DeleteUnit(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode("Unit deleted successfully")
 }
+
+func (UnitHandler *UnitHandler) GetUnits(w http.ResponseWriter, r *http.Request) {
+	UnitHandler.LoadUnits()
+	var units []Entities.Unit
+	for _, unit := range UnitHandler.cache {
+		units = append(units, unit)
+	}
+
+	json.NewEncoder(w).Encode(units)
+}
