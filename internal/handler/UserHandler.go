@@ -197,6 +197,7 @@ func (UserHandler *UserHandler) DeleteUserHandler(w http.ResponseWriter, r *http
 	response := Response{
 		Status:  "success",
 		Message: "User deleted successfully",
+		Data:    UserHandler.cache[userID],
 	}
 	UserHandler.LoadUsersIntoCache()
 	json.NewEncoder(w).Encode(response)
@@ -246,6 +247,7 @@ func (UserHandler *UserHandler) LoginHandler(w http.ResponseWriter, r *http.Requ
 	response := Response{
 		Status:  "success",
 		Message: "Logged in successfully",
+		Data:    existingUser,
 	}
 	json.NewEncoder(w).Encode(response)
 }
