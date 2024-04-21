@@ -41,6 +41,12 @@ func (a *App) Initialize(user, password, address, dbname string) {
 	a.UserHandler = Handlers.NewUserHandler(a.DB.Db)
 	a.UnitHandler = Handlers.NewUnitHandler(a.DB.Db)
 	a.ReviewHandler = Handlers.NewReviewHandler(a.DB.Db)
+	a.BookingHandler = Handlers.NewBookingHandler(a.DB.Db)
+	a.ReportHandler = Handlers.NewReportHandler(a.DB.Db)
+	a.FinancialTransactionHandler = Handlers.NewFinancialTransactionHandler(a.DB.Db)
+	a.MaintenanceTicketHandler = Handlers.NewMaintenanceTicketHandler(a.DB.Db)
+	a.PropertyHandler = Handlers.NewPropertyHandler(a.DB.Db)
+	a.MessageHandler = Handlers.NewMessageHandler(a.DB.Db)
 	a.initializeRoutes()
 }
 
