@@ -1,6 +1,6 @@
-# API Documentation
+# Graduation Project API Documentation
 
-This document provides information on the API endpoints for the UserHandler, UnitHandler, ReviewHandler, ReportHandler, and BookingHandler.
+This document provides information on the RESTful API endpoints for the UserHandler, UnitHandler, ReviewHandler, ReportHandler, BookingHandler, MaintenanceTicketHandler, MessageHandler, FinancialTransactionHandler, and PropertyHandler.
 
 ## Table of Contents
 
@@ -9,9 +9,13 @@ This document provides information on the API endpoints for the UserHandler, Uni
 - [ReviewHandler API](#reviewhandler-api)
 - [ReportHandler API](#reporthandler-api)
 - [BookingHandler API](#bookinghandler-api)
+- [MaintenanceTicketHandler API](#maintenancetickethandler-api)
+- [MessageHandler API](#messagehandler-api)
+- [FinancialTransactionHandler API](#financialtransactionhandler-api)
+- [PropertyHandler API](#propertyhandler-api)
 
 ---
-
+## Use this url to connect to the API : aiscbackend-production.up.railway.app
 ## UserHandler API
 
 ### Endpoints
@@ -282,6 +286,104 @@ Updates a booking by ID.
 
 #### DELETE /booking/{id}
 Deletes a booking by ID.
+
+##### Parameters
+- `id`: string (path parameter)
+
+##### Returns
+- A message indicating the deletion was successful
+
+## MaintenanceTicketHandler API
+
+### Endpoints
+
+#### POST /ticket
+Creates a new maintenance ticket.
+
+##### Parameters
+- `TicketID`: string
+- `UserID`: string
+- `UnitID`: string
+- `IssueDescription`: string
+- `CreateTime`: string
+
+##### Returns
+- The created MaintenanceTicket object
+
+#### GET /ticket/{id}
+Retrieves a maintenance ticket by ID.
+
+##### Parameters
+- `id`: string (path parameter)
+
+##### Returns
+- The requested MaintenanceTicket object
+
+#### PUT /ticket/{id}
+Updates a maintenance ticket by ID.
+
+##### Parameters
+- `id`: string (path parameter)
+- `UserID`: string
+- `UnitID`: string
+- `IssueDescription`: string
+- `CreateTime`: string
+
+##### Returns
+- A message indicating the update was successful
+
+#### DELETE /ticket/{id}
+Deletes a maintenance ticket by ID.
+
+##### Parameters
+- `id`: string (path parameter)
+
+##### Returns
+- A message indicating the deletion was successful
+
+---
+
+## MessageHandler API
+
+### Endpoints
+
+#### POST /message
+Creates a new message.
+
+##### Parameters
+- `MessageID`: string
+- `SenderID`: string
+- `ReceiverID`: string
+- `Content`: string
+- `CreateTime`: string
+
+##### Returns
+- The created Message object
+
+#### GET /message/{id}
+Retrieves a message by ID.
+
+##### Parameters
+- `id`: string (path parameter)
+
+##### Returns
+- The requested Message object
+
+#### PUT /message/{id}
+Updates a message by ID.
+
+##### Parameters
+- `id`: string (path parameter)
+- `SenderID`: string
+- `ReceiverID`: string
+- `Content`: string
+- `CreateTime`: string
+
+##### Returns
+- A message indicating the update was successful
+
+#### DELETE /message/{id}
+Deletes a message by ID.
 
 ##### Parameters
 - `id`: string (path parameter)

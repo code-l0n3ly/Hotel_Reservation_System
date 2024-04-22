@@ -10,4 +10,5 @@ func RegisterUnitRoutes(router *mux.Router, UnitHandler *handler.UnitHandler) {
 	router.HandleFunc("/units/{id}", UnitHandler.GetUnit).Methods("GET")
 	router.HandleFunc("/units/{id}", UnitHandler.UpdateUnit).Methods("PUT")
 	router.HandleFunc("/units/{id}", UnitHandler.DeleteUnit).Methods("DELETE")
+
 }
