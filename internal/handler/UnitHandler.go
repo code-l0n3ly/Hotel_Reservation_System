@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	Entities "GraduationProject.com/m/internal/model"
 	"github.com/gorilla/mux"
@@ -95,7 +96,7 @@ func (UnitHandler *UnitHandler) CreateUnit(w http.ResponseWriter, r *http.Reques
 		http.Error(w, "Failed to create unit", http.StatusInternalServerError)
 	}
 
-	_, err = tx.Exec(query, unit.UnitID, unit.Description, unit.Rating, unit.PropertyID, unit.RentalPrice, unit.OccupancyStatus, unit.StructuralProperties, unit.CreateTime)
+	_, err = tx.Exec(query, unit.UnitID, unit.Description, unit.Rating, unit.PropertyID, unit.RentalPrice, unit.OccupancyStatus, unit.StructuralProperties, time.Now())
 	if err != nil {
 		http.Error(w, "Failed to create unit", http.StatusInternalServerError)
 	}
