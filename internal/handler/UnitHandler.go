@@ -97,7 +97,7 @@ func (UnitHandler *UnitHandler) CreateUnit(w http.ResponseWriter, r *http.Reques
 	}
 	_, err = tx.Exec(query, unit.UnitID, unit.PropertyID, unit.RentalPrice, unit.Description, unit.Rating, unit.OccupancyStatus, unit.StructuralProperties)
 	if err != nil {
-		http.Error(w, "Failed to create unit", http.StatusInternalServerError)
+		http.Error(w, "Failed to create unit"+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -112,7 +112,8 @@ func (UnitHandler *UnitHandler) CreateUnit(w http.ResponseWriter, r *http.Reques
 	}
 	err = tx.Commit()
 	if err != nil {
-		http.Error(w, "Failed to create unit", http.StatusInternalServerError)
+		http.Error(w, "Failed to create unit"+err.Error(), http.StatusInternalServerError)
+
 		return
 	}
 	UnitHandler.LoadUnits()
