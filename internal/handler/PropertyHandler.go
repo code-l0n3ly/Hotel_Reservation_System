@@ -71,7 +71,7 @@ func (PropertyHandler *PropertyHandler) CreateProperty(w http.ResponseWriter, r 
 	}
 	PropertyHandler.LoadProperties()
 
-	query := `INSERT INTO Property (PropertyID, Name, Address, Type, Description, Rules) VALUES (?, ?, ?, ?, ?, ?, ?)`
+	query := `INSERT INTO Property (PropertyID, Name, Address, Type, Description, Rules) VALUES (?, ?, ?, ?, ?, ?)`
 	_, err = PropertyHandler.db.Exec(query, property.PropertyID, property.Name, property.Address, property.Type, property.Description, property.Rules)
 	if err != nil {
 		http.Error(w, "Failed to create property"+err.Error(), http.StatusInternalServerError)
