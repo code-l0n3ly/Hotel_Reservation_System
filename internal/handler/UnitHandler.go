@@ -96,13 +96,13 @@ func (UnitHandler *UnitHandler) CreateUnit(w http.ResponseWriter, r *http.Reques
 		http.Error(w, "Failed to create unit", http.StatusInternalServerError)
 		return
 	}
-	if unit.Images != nil {
-		_, err = tx.Exec(query, unit.UnitID, unit.Description, unit.Rating, unit.PropertyID, unit.RentalPrice, unit.OccupancyStatus, unit.StructuralProperties, time.Now())
-		if err != nil {
-			http.Error(w, "Failed to create unit", http.StatusInternalServerError)
-			return
-		}
+	_, err = tx.Exec(query, unit.UnitID, unit.Description, unit.Rating, unit.PropertyID, unit.RentalPrice, unit.OccupancyStatus, unit.StructuralProperties, time.Now())
+	if err != nil {
+		http.Error(w, "Failed to create unit", http.StatusInternalServerError)
+		return
+	}
 
+	if unit.Images != nil {
 		for _, image := range unit.Images {
 			_, err = tx.Exec(`INSERT INTO Images (UnitID, Image) VALUES (?, ?)`, unit.UnitID, image)
 			if err != nil {
