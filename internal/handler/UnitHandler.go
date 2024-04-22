@@ -92,7 +92,7 @@ func (UnitHandler *UnitHandler) CreateUnit(w http.ResponseWriter, r *http.Reques
 	query := `INSERT INTO Unit (UnitID, Images, Description, Rating, PropertyID, RentalPrice, OccupancyStatus, StructuralProperties, CreateTime) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
 	_, err = UnitHandler.db.Exec(query, unit.UnitID, unit.Images, unit.Description, unit.Rating, unit.PropertyID, unit.RentalPrice, unit.OccupancyStatus, unit.StructuralProperties, unit.CreateTime)
 	if err != nil {
-		http.Error(w, "Failed to create unit", http.StatusInternalServerError)
+		http.Error(w, "Failed to create unit :"+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	UnitHandler.LoadUnits()
