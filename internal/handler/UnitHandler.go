@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	Entities "GraduationProject.com/m/internal/model"
 	"github.com/gorilla/mux"
@@ -131,8 +132,29 @@ func (UnitHandler *UnitHandler) GetUnit(w http.ResponseWriter, r *http.Request) 
 	unitID := params["id"]
 	UnitHandler.LoadUnits()
 	var unit Entities.Unit
+	var createTime []byte
+
 	query := `SELECT UnitID, PropertyID, RentalPrice, OccupancyStatus, StructuralProperties, CreateTime FROM Unit WHERE UnitID = ?`
-	err := UnitHandler.db.QueryRow(query, unitID).Scan(&unit.UnitID, &unit.PropertyID, &unit.RentalPrice, &unit.OccupancyStatus, &unit.StructuralProperties, &unit.CreateTime)
+	err := UnitHandler.db.QueryRow(query, unitID).Scan(&unit.UnitID, &unit.PropertyID, &unit.RentalPrice, &unit.OccupancyStatus, &unit.StructuralProperties, &createTime)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			http.NotFound(w, r)
+			return
+		}
+		http.Error(w, "Failed to retrieve unit"+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	unit.CreateTime, err = time.Parse("2006-01-02 15:04:05", string(createTime))
+	if err != nil {
+		if err == sql.ErrNoRows {
+			http.NotFound(w, r)
+			return
+		}
+		http.Error(w, "Failed to retrieve unit"+err.Error(), http.StatusInternalServerError)
+		return
+	}
 	if err != nil {
 		if err == sql.ErrNoRows {
 			http.NotFound(w, r)
