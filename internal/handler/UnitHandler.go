@@ -131,14 +131,14 @@ func (UnitHandler *UnitHandler) GetUnit(w http.ResponseWriter, r *http.Request) 
 	unitID := params["id"]
 	UnitHandler.LoadUnits()
 	var unit Entities.Unit
-	query := `SELECT UnitID, PropertyID, RentalPrice, OccupancyStatus, StructuralProperties FROM Unit WHERE UnitID = ?`
-	err := UnitHandler.db.QueryRow(query, unitID).Scan(&unit.UnitID, &unit.PropertyID, &unit.RentalPrice, &unit.OccupancyStatus, &unit.StructuralProperties)
+	query := `SELECT UnitID, PropertyID, RentalPrice, OccupancyStatus, StructuralProperties, CreateTime FROM Unit WHERE UnitID = ?`
+	err := UnitHandler.db.QueryRow(query, unitID).Scan(&unit.UnitID, &unit.PropertyID, &unit.RentalPrice, &unit.OccupancyStatus, &unit.StructuralProperties, &unit.CreateTime)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			http.NotFound(w, r)
 			return
 		}
-		http.Error(w, "Failed to retrieve unit", http.StatusInternalServerError)
+		http.Error(w, "Failed to retrieve unit"+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
