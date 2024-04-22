@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"time"
 
 	Entities "GraduationProject.com/m/internal/model"
 	"github.com/gorilla/mux"
@@ -90,13 +89,13 @@ func (UnitHandler *UnitHandler) CreateUnit(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	query := `INSERT INTO Unit (UnitID, PropertyID, RentalPrice, Description, Rating, OccupancyStatus, StructuralProperties, create_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+	query := `INSERT INTO Unit (UnitID, PropertyID, RentalPrice, Description, Rating, OccupancyStatus, StructuralProperties) VALUES (?, ?, ?, ?, ?, ?, ?)`
 	tx, err := UnitHandler.db.Begin()
 	if err != nil {
 		http.Error(w, "Failed to create unit", http.StatusInternalServerError)
 		return
 	}
-	_, err = tx.Exec(query, unit.UnitID, unit.PropertyID, unit.RentalPrice, unit.Description, unit.Rating, unit.OccupancyStatus, unit.StructuralProperties, time.Now())
+	_, err = tx.Exec(query, unit.UnitID, unit.PropertyID, unit.RentalPrice, unit.Description, unit.Rating, unit.OccupancyStatus, unit.StructuralProperties)
 	if err != nil {
 		http.Error(w, "Failed to create unit", http.StatusInternalServerError)
 		return
