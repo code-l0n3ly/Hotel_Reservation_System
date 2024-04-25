@@ -1,59 +1,50 @@
 # Graduation Project API Documentation
 
-This document provides information on the RESTful API endpoints for the UserHandler, UnitHandler, ReviewHandler, ReportHandler, BookingHandler, MaintenanceTicketHandler, MessageHandler, FinancialTransactionHandler, and PropertyHandler.
+Welcome to the API documentation for the Graduation Project. This document provides comprehensive information on the RESTful API endpoints for various handlers. 
+
+Use the following URL to connect to the API: `aiscbackend-production.up.railway.app`
 
 ## Table of Contents
 
-- [UserHandler API](#userhandler-api)
-- [UnitHandler API](#unithandler-api)
-- [ReviewHandler API](#reviewhandler-api)
-- [ReportHandler API](#reporthandler-api)
-- [BookingHandler API](#bookinghandler-api)
-- [MaintenanceTicketHandler API](#maintenancetickethandler-api)
-- [MessageHandler API](#messagehandler-api)
-- [FinancialTransactionHandler API](#financialtransactionhandler-api)
-- [PropertyHandler API](#propertyhandler-api)
+1. [UserHandler API](#userhandler-api)
+2. [UnitHandler API](#unithandler-api)
+3. [ReviewHandler API](#reviewhandler-api)
+4. [ReportHandler API](#reporthandler-api)
+5. [BookingHandler API](#bookinghandler-api)
+6. [MaintenanceTicketHandler API](#maintenancetickethandler-api)
+7. [MessageHandler API](#messagehandler-api)
+8. [FinancialTransactionHandler API](#financialtransactionhandler-api)
+9. [PropertyHandler API](#propertyhandler-api)
 
 ---
-## Use this url to connect to the API : aiscbackend-production.up.railway.app
+
 ## UserHandler API
 
 ### Endpoints
 
-#### POST /user
+#### `POST /user`
 Creates a new user.
 
 ##### Parameters
 - `Name`: string
 - `Email`: string
+- `PhoneNumber`: string
 - `Password`: string
+- `UserRole`: string
 
 ##### Returns
-- `Status`: string
-- `Message`: string
-- `Data`: User object (if creation is successful)
+- The created User object
 
-#### GET /user/{id}
+#### `GET /user/{id}`
 Retrieves a user by ID.
 
 ##### Parameters
 - `id`: string (path parameter)
 
 ##### Returns
-- `Status`: string
-- `Message`: string
-- `Data`: User object (if user is found)
+- The requested User object
 
-#### GET /users
-Retrieves all users.
-
-##### Parameters
-None
-
-##### Returns
-- Array of User objects
-
-#### PUT /user/{id}
+#### `PUT /user/{id}`
 Updates a user by ID.
 
 ##### Parameters
@@ -63,20 +54,24 @@ Updates a user by ID.
 - `UserRole`: string
 
 ##### Returns
-- `Status`: string
-- `Message`: string
+- A message indicating the update was successful
 
-#### DELETE /user/{id}
+#### `DELETE /user/{id}`
 Deletes a user by ID.
 
 ##### Parameters
 - `id`: string (path parameter)
 
 ##### Returns
-- `Status`: string
-- `Message`: string
+- A message indicating the deletion was successful
 
-#### POST /login
+#### `GET /user`
+Retrieves all users.
+
+##### Returns
+- An array of User objects
+
+#### `POST /user/login`
 Authenticates a user.
 
 ##### Parameters
@@ -84,8 +79,69 @@ Authenticates a user.
 - `Password`: string
 
 ##### Returns
-- `Status`: string
-- `Message`: string
+- A message indicating the login was successful or failed
+
+## PropertyHandler API
+
+### Endpoints
+
+#### `POST /property`
+Creates a new property.
+
+##### Parameters
+- `OwnerID`: string
+- `Name`: string
+- `Address`: string
+- `Type`: string
+- `Description`: string
+- `Rules`: string
+- `Photos`: array of base64-encoded strings (images)
+
+##### Returns
+- The created Property object
+
+#### `GET /property/{id}`
+Retrieves a property by ID.
+
+##### Parameters
+- `id`: string (path parameter)
+
+##### Returns
+- The requested Property object
+
+#### `PUT /property/{id}`
+Updates a property by ID.
+
+##### Parameters
+- `id`: string (path parameter)
+- `OwnerID`: string
+- `Name`: string
+- `Address`: string
+- `Type`: string
+- `Description`: string
+- `Rules`: string
+- `Photos`: array of base64-encoded strings (images)
+
+##### Returns
+- A message indicating the update was successful
+
+#### `DELETE /property/{id}`
+Deletes a property by ID.
+
+##### Parameters
+- `id`: string (path parameter)
+
+##### Returns
+- A message indicating the deletion was successful
+
+#### `GET /property/user/{id}`
+Retrieves all properties by UserID.
+
+##### Parameters
+- `id`: string (path parameter)
+
+##### Returns
+- An array of Property objects owned by the user
 
 ---
 
@@ -93,20 +149,21 @@ Authenticates a user.
 
 ### Endpoints
 
-#### POST /unit
+#### `POST /unit`
 Creates a new unit.
 
 ##### Parameters
 - `PropertyID`: string
-- `RentalPrice`: float
+- `Name`: string
+- `Description`: string
 - `OccupancyStatus`: string
 - `StructuralProperties`: string
-- `CreateTime`: string
+- `Images`: array of base64-encoded strings (images)
 
 ##### Returns
 - The created Unit object
 
-#### GET /unit/{id}
+#### `GET /unit/{id}`
 Retrieves a unit by ID.
 
 ##### Parameters
@@ -115,21 +172,22 @@ Retrieves a unit by ID.
 ##### Returns
 - The requested Unit object
 
-#### PUT /unit/{id}
+#### `PUT /unit/{id}`
 Updates a unit by ID.
 
 ##### Parameters
 - `id`: string (path parameter)
 - `PropertyID`: string
-- `RentalPrice`: float
+- `Name`: string
+- `Description`: string
 - `OccupancyStatus`: string
 - `StructuralProperties`: string
-- `CreateTime`: string
+- `Images`: array of base64-encoded strings (images)
 
 ##### Returns
 - A message indicating the update was successful
 
-#### DELETE /unit/{id}
+#### `DELETE /unit/{id}`
 Deletes a unit by ID.
 
 ##### Parameters
@@ -138,255 +196,8 @@ Deletes a unit by ID.
 ##### Returns
 - A message indicating the deletion was successful
 
----
-
-## ReviewHandler API
-
-### Endpoints
-
-#### POST /review
-Creates a new review.
-
-##### Parameters
-- `ReviewID`: string
-- `UserID`: string
-- `UnitID`: string
-- `Rating`: float
-- `Comment`: string
-- `CreateTime`: string
+#### `GET /unit`
+Retrieves all units.
 
 ##### Returns
-- The created Review object
-
-#### GET /review/{id}
-Retrieves a review by ID.
-
-##### Parameters
-- `id`: string (path parameter)
-
-##### Returns
-- The requested Review object
-
-#### PUT /review/{id}
-Updates a review by ID.
-
-##### Parameters
-- `id`: string (path parameter)
-- `UserID`: string
-- `UnitID`: string
-- `Rating`: float
-- `Comment`: string
-- `CreateTime`: string
-
-##### Returns
-- A message indicating the update was successful
-
-#### DELETE /review/{id}
-Deletes a review by ID.
-
-##### Parameters
-- `id`: string (path parameter)
-
-##### Returns
-- A message indicating the deletion was successful
-
----
-
-## ReportHandler API
-
-### Endpoints
-
-#### POST /report
-Creates a new report.
-
-##### Parameters
-- `ReportID`: string
-- `UserID`: string
-- `Type`: string
-- `CreateTime`: string
-- `Data`: string
-
-##### Returns
-- The created Report object
-
-#### GET /report/{id}
-Retrieves a report by ID.
-
-##### Parameters
-- `id`: string (path parameter)
-
-##### Returns
-- The requested Report object
-
-#### PUT /report/{id}
-Updates a report by ID.
-
-##### Parameters
-- `id`: string (path parameter)
-- `UserID`: string
-- `Type`: string
-- `CreateTime`: string
-- `Data`: string
-
-##### Returns
-- A message indicating the update was successful
-
-#### DELETE /report/{id}
-Deletes a report by ID.
-
-##### Parameters
-- `id`: string (path parameter)
-
-##### Returns
-- A message indicating the deletion was successful
-
----
-
-## BookingHandler API
-
-### Endpoints
-
-#### POST /booking
-Creates a new booking.
-
-##### Parameters
-- `BookingID`: string
-- `UserID`: string
-- `UnitID`: string
-- `StartDate`: string
-- `EndDate`: string
-- `CreateTime`: string
-- `Summary`: string
-
-##### Returns
-- The created Booking object
-
-#### GET /booking/{id}
-Retrieves a booking by ID.
-
-##### Parameters
-- `id`: string (path parameter)
-
-##### Returns
-- The requested Booking object
-
-#### PUT /booking/{id}
-Updates a booking by ID.
-
-##### Parameters
-- `id`: string (path parameter)
-- `UserID`: string
-- `UnitID`: string
-- `StartDate`: string
-- `EndDate`: string
-- `Summary`: string
-
-##### Returns
-- A message indicating the update was successful
-
-#### DELETE /booking/{id}
-Deletes a booking by ID.
-
-##### Parameters
-- `id`: string (path parameter)
-
-##### Returns
-- A message indicating the deletion was successful
-
-## MaintenanceTicketHandler API
-
-### Endpoints
-
-#### POST /ticket
-Creates a new maintenance ticket.
-
-##### Parameters
-- `TicketID`: string
-- `UserID`: string
-- `UnitID`: string
-- `IssueDescription`: string
-- `CreateTime`: string
-
-##### Returns
-- The created MaintenanceTicket object
-
-#### GET /ticket/{id}
-Retrieves a maintenance ticket by ID.
-
-##### Parameters
-- `id`: string (path parameter)
-
-##### Returns
-- The requested MaintenanceTicket object
-
-#### PUT /ticket/{id}
-Updates a maintenance ticket by ID.
-
-##### Parameters
-- `id`: string (path parameter)
-- `UserID`: string
-- `UnitID`: string
-- `IssueDescription`: string
-- `CreateTime`: string
-
-##### Returns
-- A message indicating the update was successful
-
-#### DELETE /ticket/{id}
-Deletes a maintenance ticket by ID.
-
-##### Parameters
-- `id`: string (path parameter)
-
-##### Returns
-- A message indicating the deletion was successful
-
----
-
-## MessageHandler API
-
-### Endpoints
-
-#### POST /message
-Creates a new message.
-
-##### Parameters
-- `MessageID`: string
-- `SenderID`: string
-- `ReceiverID`: string
-- `Content`: string
-- `CreateTime`: string
-
-##### Returns
-- The created Message object
-
-#### GET /message/{id}
-Retrieves a message by ID.
-
-##### Parameters
-- `id`: string (path parameter)
-
-##### Returns
-- The requested Message object
-
-#### PUT /message/{id}
-Updates a message by ID.
-
-##### Parameters
-- `id`: string (path parameter)
-- `SenderID`: string
-- `ReceiverID`: string
-- `Content`: string
-- `CreateTime`: string
-
-##### Returns
-- A message indicating the update was successful
-
-#### DELETE /message/{id}
-Deletes a message by ID.
-
-##### Parameters
-- `id`: string (path parameter)
-
-##### Returns
-- A message indicating the deletion was successful
+- An array of Unit objects

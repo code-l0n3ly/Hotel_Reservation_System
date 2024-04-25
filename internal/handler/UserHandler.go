@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	_ "GraduationProject.com/m/internal/db"
 	Entities "GraduationProject.com/m/internal/model"
@@ -52,6 +53,7 @@ func (UserHandler *UserHandler) SetHighestUserID() {
 }
 
 func (UserHandler *UserHandler) LoadUsersIntoCache() error {
+
 	rows, err := UserHandler.db.Query(`SELECT * FROM User`)
 	if err != nil {
 		return err
@@ -59,11 +61,12 @@ func (UserHandler *UserHandler) LoadUsersIntoCache() error {
 	defer rows.Close()
 
 	for rows.Next() {
+		var createTime []byte
 		var user Entities.User
-		if err := rows.Scan(&user.UserID, &user.Name, &user.Email, &user.Password, &user.CreateTime, &user.UserRole); err != nil {
+		if err := rows.Scan(&user.UserID, &user.Name, &user.Email, &user.PhoneNumber, &user.Password, createTime, &user.UserRole); err != nil {
 			return err
 		}
-		fmt.Println(user)
+		user.CreateTime, _ = time.Parse("2006-01-02 15:04:05", string(createTime))
 		UserHandler.cache[user.UserID] = user
 	}
 	UserHandler.SetHighestUserID()
@@ -86,6 +89,7 @@ func (UserHandler *UserHandler) CreateUserHandler(w http.ResponseWriter, r *http
 	}
 
 	// Check if user already exists in the cache
+	user.UserID = strconv.Itoa(int(UserHandler.UserIdReference) + 1)
 	_, exists := UserHandler.GetUserByID(user.UserID)
 	if exists {
 		http.Error(w, "User already exists", http.StatusBadRequest)
@@ -101,8 +105,8 @@ func (UserHandler *UserHandler) CreateUserHandler(w http.ResponseWriter, r *http
 		http.Error(w, "Password is not strong enough", http.StatusBadRequest)
 		return
 	}
-	query := `INSERT INTO User (UserID, Name, Email, Password) VALUES (?, ?, ?, ?)`
-	_, err = UserHandler.db.Exec(query, user.UserID, user.Name, user.Email, user.Password)
+	query := `INSERT INTO User (UserID, Name, Email, PhoneNumber Password, UserRole) VALUES (?, ?, ?, ?, ?, ?)`
+	_, err = UserHandler.db.Exec(query, user.UserID, user.Name, user.Email, user.PhoneNumber, user.Password, user.UserRole)
 	if err != nil {
 		http.Error(w, "Failed to create user", http.StatusInternalServerError)
 		return
@@ -127,8 +131,8 @@ func (UserHandler *UserHandler) GetUserHandler(w http.ResponseWriter, r *http.Re
 	userID := params["id"]
 
 	var user Entities.User
-	query := `SELECT UserID, Name, Email, UserRole FROM User WHERE UserID = ?`
-	err := UserHandler.db.QueryRow(query, userID).Scan(&user.UserID, &user.Name, &user.Email, &user.UserRole)
+	query := `SELECT UserID, Name, Email, PhoneNumber, UserRole FROM User WHERE UserID = ?`
+	err := UserHandler.db.QueryRow(query, userID).Scan(&user.UserID, &user.Name, &user.Email, &user.PhoneNumber, &user.UserRole)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			http.NotFound(w, r)
@@ -153,7 +157,13 @@ func (UserHandler *UserHandler) GetUsersHandler(w http.ResponseWriter, r *http.R
 		users = append(users, user)
 	}
 
-	json.NewEncoder(w).Encode(users)
+	response := Response{
+		Status:  "success",
+		Message: "Users retrieved successfully",
+		Data:    users,
+	}
+
+	json.NewEncoder(w).Encode(response)
 }
 
 func (UserHandler *UserHandler) UpdateUserHandler(w http.ResponseWriter, r *http.Request) {

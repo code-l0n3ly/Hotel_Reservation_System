@@ -7,6 +7,7 @@ import (
 
 type Unit struct {
 	UnitID               string    `json:"unitID"`
+	Name                 string    `json:"name,omitempty"` // Optional field
 	Images               [][]byte  `json:"images,omitempty"`
 	Description          string    `json:"description,omitempty"`
 	Rating               float32   `json:"rating,omitempty"`
