@@ -67,6 +67,7 @@ func (UserHandler *UserHandler) LoadUsersIntoCache() error {
 			return err
 		}
 		user.CreateTime, _ = time.Parse("2006-01-02 15:04:05", string(createTime))
+		fmt.Println(user)
 		UserHandler.cache[user.UserID] = user
 	}
 	UserHandler.SetHighestUserID()
