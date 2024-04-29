@@ -135,7 +135,7 @@ func (UserHandler *UserHandler) GetUserHandler(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve user"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve user", "err": err.Error()})
 		return
 	}
 
