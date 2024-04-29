@@ -4,19 +4,17 @@ package App
 import (
 	"fmt"
 	"log"
-	"net/http"
 
 	Routes "GraduationProject.com/m/internal/Routes"
 	Database "GraduationProject.com/m/internal/db"
 	Handlers "GraduationProject.com/m/internal/handler"
+	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/gorilla/mux"
-	"github.com/rs/cors"
 )
 
 // App encapsulates Environment, Router, and DB connections
 type App struct {
-	Router                      *mux.Router
+	Router                      *gin.Engine
 	DB                          *Database.DBExecutor
 	UserHandler                 *Handlers.UserHandler
 	ReviewHandler               *Handlers.ReviewHandler
@@ -37,7 +35,7 @@ func (a *App) Initialize(user, password, address, dbname string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	a.Router = mux.NewRouter()
+	a.Router = gin.Default()
 	a.UserHandler = Handlers.NewUserHandler(a.DB.Db)
 	a.UnitHandler = Handlers.NewUnitHandler(a.DB.Db)
 	a.ReviewHandler = Handlers.NewReviewHandler(a.DB.Db)
@@ -53,22 +51,18 @@ func (a *App) Initialize(user, password, address, dbname string) {
 // InitializeRoutes sets up the routes for the application
 func (a *App) initializeRoutes() {
 	Routes.RegisterUserRoutes(a.Router, a.UserHandler)
-	Routes.RegisterReviewRoutes(a.Router, a.ReviewHandler)
-	Routes.RegisterUnitRoutes(a.Router, a.UnitHandler)
-	Routes.RegisterBookingRoutes(a.Router, a.BookingHandler)
-	Routes.RegisterReportRoutes(a.Router, a.ReportHandler)
-	Routes.RegisterFinancialTransactionRoutes(a.Router, a.FinancialTransactionHandler)
-	Routes.RegisterMaintenanceTicketRoutes(a.Router, a.MaintenanceTicketHandler)
-	Routes.RegisterPropertyRoutes(a.Router, a.PropertyHandler)
-	Routes.RegisterMessageRoutes(a.Router, a.MessageHandler)
-
+	// Routes.RegisterReviewRoutes(a.Router, a.ReviewHandler)
+	// Routes.RegisterUnitRoutes(a.Router, a.UnitHandler)
+	// Routes.RegisterBookingRoutes(a.Router, a.BookingHandler)
+	// Routes.RegisterReportRoutes(a.Router, a.ReportHandler)
+	// Routes.RegisterFinancialTransactionRoutes(a.Router, a.FinancialTransactionHandler)
+	// Routes.RegisterMaintenanceTicketRoutes(a.Router, a.MaintenanceTicketHandler)
+	// Routes.RegisterPropertyRoutes(a.Router, a.PropertyHandler)
+	// Routes.RegisterMessageRoutes(a.Router, a.MessageHandler)
 }
 
 // Run starts the server on a specified port
 func (a *App) Run(addr string) {
 	log.Printf("Listening on %s\n", addr)
-	handler := cors.AllowAll().Handler(a.Router)
-	log.Fatal(http.ListenAndServe(addr, handler))
+	log.Fatal(a.Router.Run(addr))
 }
-
-// In app.go

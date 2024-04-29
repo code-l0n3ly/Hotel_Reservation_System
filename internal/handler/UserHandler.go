@@ -2,15 +2,13 @@ package Handlers
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
 	"time"
 
-	_ "GraduationProject.com/m/internal/db"
 	Entities "GraduationProject.com/m/internal/model"
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 )
 
 type UserHandler struct {
@@ -79,67 +77,64 @@ func (UserHandler *UserHandler) GetUserByID(userID string) (Entities.User, bool)
 	return user, exists
 }
 
-func (UserHandler *UserHandler) CreateUserHandler(w http.ResponseWriter, r *http.Request) {
+func (UserHandler *UserHandler) CreateUserHandler(c *gin.Context) {
 	UserHandler.LoadUsersIntoCache()
 	var user Entities.User
-	err := json.NewDecoder(r.Body).Decode(&user)
-	user.UserID = UserHandler.GenerateUniqueUserID()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&user); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	user.UserID = UserHandler.GenerateUniqueUserID()
 
 	// Check if user already exists in the cache
 	user.UserID = strconv.Itoa(int(UserHandler.UserIdReference) + 1)
 	_, exists := UserHandler.GetUserByID(user.UserID)
 	if exists {
-		http.Error(w, "User already exists", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "User already exists"})
 		return
 	}
 	if err := user.Validate(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	} else if !user.IsEmailValid() {
-		http.Error(w, "Email is not valid", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email is not valid"})
 		return
 	} else if !user.IsPasswordStrong() {
-		http.Error(w, "Password is not strong enough", http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Password is not strong enough"})
 		return
 	}
 	query := `INSERT INTO User (UserID, Name, Email, PhoneNumber Password, UserRole) VALUES (?, ?, ?, ?, ?, ?)`
-	_, err = UserHandler.db.Exec(query, user.UserID, user.Name, user.Email, user.PhoneNumber, user.Password, user.UserRole)
+	_, err := UserHandler.db.Exec(query, user.UserID, user.Name, user.Email, user.PhoneNumber, user.Password, user.UserRole)
 	if err != nil {
-		http.Error(w, "Failed to create user", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
 		return
 	}
 
 	// Add the new user to the cache
 	UserHandler.LoadUsersIntoCache()
-	w.WriteHeader(http.StatusCreated)
+
 	response := Response{
 		Status:  "success",
 		Message: "User created successfully",
 		Data:    UserHandler.cache[user.UserID],
 	}
 
-	// Write the response
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(response)
+	c.JSON(http.StatusCreated, response)
 }
 
-func (UserHandler *UserHandler) GetUserHandler(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	userID := params["id"]
+func (UserHandler *UserHandler) GetUserHandler(c *gin.Context) {
+	userID := c.Param("id")
 
 	var user Entities.User
 	query := `SELECT UserID, Name, Email, PhoneNumber, UserRole FROM User WHERE UserID = ?`
 	err := UserHandler.db.QueryRow(query, userID).Scan(&user.UserID, &user.Name, &user.Email, &user.PhoneNumber, &user.UserRole)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			http.NotFound(w, r)
+			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 			return
 		}
-		http.Error(w, "Failed to retrieve user", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve user"})
 		return
 	}
 
@@ -148,10 +143,10 @@ func (UserHandler *UserHandler) GetUserHandler(w http.ResponseWriter, r *http.Re
 		Message: "User retrieved successfully",
 		Data:    user,
 	}
-	json.NewEncoder(w).Encode(response)
+	c.JSON(http.StatusOK, response)
 }
 
-func (UserHandler *UserHandler) GetUsersHandler(w http.ResponseWriter, r *http.Request) {
+func (UserHandler *UserHandler) GetUsersHandler(c *gin.Context) {
 	UserHandler.LoadUsersIntoCache()
 	var users []Entities.User
 	for _, user := range UserHandler.cache {
@@ -164,69 +159,64 @@ func (UserHandler *UserHandler) GetUsersHandler(w http.ResponseWriter, r *http.R
 		Data:    users,
 	}
 
-	json.NewEncoder(w).Encode(response)
+	c.JSON(http.StatusOK, response)
 }
 
-func (UserHandler *UserHandler) UpdateUserHandler(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	userID := params["id"]
+func (UserHandler *UserHandler) UpdateUserHandler(c *gin.Context) {
+	userID := c.Param("id")
 	UserHandler.LoadUsersIntoCache()
 	var user Entities.User
-	err := json.NewDecoder(r.Body).Decode(&user)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&user); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	query := `UPDATE User SET Name = ?, Email = ?, UserRole = ? WHERE UserID = ?`
-	_, err = UserHandler.db.Exec(query, user.Name, user.Email, user.UserRole, userID)
+	_, err := UserHandler.db.Exec(query, user.Name, user.Email, user.UserRole, userID)
 	if err != nil {
-		http.Error(w, "Failed to update user", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user"})
 		return
 	}
 	UserHandler.LoadUsersIntoCache()
-	w.WriteHeader(http.StatusOK)
+
 	response := Response{
 		Status:  "success",
 		Message: "User updated successfully",
 	}
-	json.NewEncoder(w).Encode(response)
+	c.JSON(http.StatusOK, response)
 }
 
-func (UserHandler *UserHandler) DeleteUserHandler(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	userID := params["id"]
+func (UserHandler *UserHandler) DeleteUserHandler(c *gin.Context) {
+	userID := c.Param("id")
 	UserHandler.LoadUsersIntoCache()
 	query := `DELETE FROM User WHERE UserID = ?`
 	_, err := UserHandler.db.Exec(query, userID)
 	if err != nil {
-		http.Error(w, "Failed to delete user", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete user"})
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
 	response := Response{
 		Status:  "success",
 		Message: "User deleted successfully",
 		Data:    UserHandler.cache[userID],
 	}
 	UserHandler.LoadUsersIntoCache()
-	json.NewEncoder(w).Encode(response)
+	c.JSON(http.StatusOK, response)
 }
 
-func (UserHandler *UserHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
+func (UserHandler *UserHandler) LoginHandler(c *gin.Context) {
 	// Parse and decode the request body into a new 'User' struct
 	var user Entities.User
-	err := json.NewDecoder(r.Body).Decode(&user)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	if err := c.ShouldBindJSON(&user); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	UserHandler.LoadUsersIntoCache()
 	// Get the existing user details from the database
 	var existingUser Entities.User
 	query := `SELECT UserID, Name, Email, Password FROM User WHERE Email = ?`
-	err = UserHandler.db.QueryRow(query, user.Email).Scan(&existingUser.UserID, &existingUser.Name, &existingUser.Email, &existingUser.Password)
+	err := UserHandler.db.QueryRow(query, user.Email).Scan(&existingUser.UserID, &existingUser.Name, &existingUser.Email, &existingUser.Password)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// If the user does not exist, send an appropriate response message
@@ -234,10 +224,9 @@ func (UserHandler *UserHandler) LoginHandler(w http.ResponseWriter, r *http.Requ
 				Status:  "error",
 				Message: "User not found",
 			}
-			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(response)
+			c.JSON(http.StatusUnauthorized, response)
 		} else {
-			http.Error(w, "Failed to retrieve user", http.StatusInternalServerError)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve user"})
 		}
 		return
 	}
@@ -249,8 +238,7 @@ func (UserHandler *UserHandler) LoginHandler(w http.ResponseWriter, r *http.Requ
 			Status:  "error",
 			Message: "Invalid password",
 		}
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(response)
+		c.JSON(http.StatusUnauthorized, response)
 		return
 	}
 
@@ -260,5 +248,5 @@ func (UserHandler *UserHandler) LoginHandler(w http.ResponseWriter, r *http.Requ
 		Message: "Logged in successfully",
 		Data:    existingUser,
 	}
-	json.NewEncoder(w).Encode(response)
+	c.JSON(http.StatusOK, response)
 }

@@ -2,15 +2,15 @@ package Routes
 
 import (
 	handler "GraduationProject.com/m/internal/handler"
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 )
 
-// RegisterRoutes sets up the routes for the application
-func RegisterUserRoutes(router *mux.Router, UserHandler *handler.UserHandler) {
-	router.HandleFunc("/users/create", UserHandler.CreateUserHandler).Methods("POST")
-	router.HandleFunc("/users/login", UserHandler.LoginHandler).Methods("POST")
-	router.HandleFunc("/users", UserHandler.GetUsersHandler).Methods("GET")
-	router.HandleFunc("/users/{id}", UserHandler.GetUserHandler).Methods("GET")
-	router.HandleFunc("/users/{id}", UserHandler.UpdateUserHandler).Methods("PUT")
-	router.HandleFunc("/users/{id}", UserHandler.DeleteUserHandler).Methods("DELETE")
+// RegisterUserRoutes sets up the routes for the application
+func RegisterUserRoutes(router *gin.Engine, UserHandler *handler.UserHandler) {
+	router.POST("/users/create", UserHandler.CreateUserHandler)
+	router.POST("/users/login", UserHandler.LoginHandler)
+	router.GET("/users", UserHandler.GetUsersHandler)
+	router.GET("/users/:id", UserHandler.GetUserHandler)
+	router.PUT("/users/:id", UserHandler.UpdateUserHandler)
+	router.DELETE("/users/:id", UserHandler.DeleteUserHandler)
 }
