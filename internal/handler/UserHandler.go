@@ -54,6 +54,7 @@ func (UserHandler *UserHandler) LoadUsersIntoCache() error {
 
 	rows, err := UserHandler.db.Query(`SELECT * FROM User`)
 	if err != nil {
+		fmt.Println(err.Error())
 		return err
 	}
 	defer rows.Close()
