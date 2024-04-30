@@ -2,14 +2,19 @@ package Routes
 
 import (
 	handler "GraduationProject.com/m/internal/handler"
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 )
 
-func RegisterPropertyRoutes(router *mux.Router, PropertyHandler *handler.PropertyHandler) {
-	router.HandleFunc("/property/create", PropertyHandler.CreateProperty).Methods("POST")
-	router.HandleFunc("/property/{id}", PropertyHandler.GetProperty).Methods("GET")
-	router.HandleFunc("/property/", PropertyHandler.GetProperties).Methods("GET")
-	router.HandleFunc("/property/owner/{id}", PropertyHandler.GetPropertiesByUserID).Methods("GET")
-	router.HandleFunc("/property/{id}", PropertyHandler.UpdateProperty).Methods("PUT")
-	router.HandleFunc("/property/{id}", PropertyHandler.DeleteProperty).Methods("DELETE")
+func RegisterPropertyRoutes(router *gin.Engine, PropertyHandler *handler.PropertyHandler) {
+	propertyRoutes := router.Group("/property")
+	{
+		propertyRoutes.POST("/create", PropertyHandler.CreateProperty)
+		propertyRoutes.GET("/:id", PropertyHandler.GetProperty)
+		propertyRoutes.GET("/", PropertyHandler.GetProperties)
+		propertyRoutes.GET("/owner/:id", PropertyHandler.GetPropertiesByUserID)
+		propertyRoutes.GET("/AllUnits/:id", PropertyHandler.GetUnitsByPropertyID)
+		propertyRoutes.GET("/ByType/:type", PropertyHandler.GetPropertiesByType)
+		propertyRoutes.PUT("/:id", PropertyHandler.UpdateProperty)
+		propertyRoutes.DELETE("/:id", PropertyHandler.DeleteProperty)
+	}
 }

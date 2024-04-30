@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	Entities "GraduationProject.com/m/internal/model"
@@ -31,45 +32,26 @@ type Response struct {
 	Data    interface{} `json:"data,omitempty"`
 }
 
-func (UserHandler *UserHandler) GenerateUniqueUserID() string {
-	UserHandler.UserIdReference++
-	return fmt.Sprintf("%d", UserHandler.UserIdReference)
-}
-
-func (UserHandler *UserHandler) SetHighestUserID() {
-	highestID := int64(0)
-	for _, user := range UserHandler.cache {
-		userID, err := strconv.ParseInt(user.UserID, 10, 64)
-		if err != nil {
-			continue // Skip if the UserID is not a valid integer
-		}
-		if userID > highestID {
-			highestID = userID
-		}
-	}
-	UserHandler.UserIdReference = highestID
-}
-
 func (UserHandler *UserHandler) LoadUsersIntoCache() error {
-
 	rows, err := UserHandler.db.Query(`SELECT * FROM User`)
 	if err != nil {
 		fmt.Println(err.Error())
 		return err
 	}
+	fmt.Println("Loading users into cache")
 	defer rows.Close()
 
 	for rows.Next() {
 		var createTime []byte
 		var user Entities.User
-		if err := rows.Scan(&user.UserID, &user.Name, &user.Email, &user.PhoneNumber, &user.Password, createTime, &user.UserRole); err != nil {
+		if err := rows.Scan(&user.UserID, &user.Name, &user.PhoneNumber, &user.Email, &user.Password, &createTime, &user.UserRole); err != nil {
+			fmt.Println(err.Error())
 			return err
 		}
 		user.CreateTime, _ = time.Parse("2006-01-02 15:04:05", string(createTime))
 		fmt.Println(user)
 		UserHandler.cache[user.UserID] = user
 	}
-	UserHandler.SetHighestUserID()
 	return rows.Err()
 }
 
@@ -86,35 +68,27 @@ func (UserHandler *UserHandler) CreateUserHandler(c *gin.Context) {
 		return
 	}
 
-	user.UserID = UserHandler.GenerateUniqueUserID()
-
 	// Check if user already exists in the cache
-	user.UserID = strconv.Itoa(int(UserHandler.UserIdReference) + 1)
-	_, exists := UserHandler.GetUserByID(user.UserID)
-	if exists {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "User already exists"})
-		return
-	}
-	if err := user.Validate(); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	} else if !user.IsEmailValid() {
+	if !user.IsEmailValid() {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Email is not valid"})
 		return
 	} else if !user.IsPasswordStrong() {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Password is not strong enough"})
 		return
 	}
-	query := `INSERT INTO User (UserID, Name, Email, PhoneNumber Password, UserRole) VALUES (?, ?, ?, ?, ?, ?)`
-	_, err := UserHandler.db.Exec(query, user.UserID, user.Name, user.Email, user.PhoneNumber, user.Password, user.UserRole)
+	query := `INSERT INTO User (Name, Email, PhoneNumber, Password, UserRole) VALUES (?, ?, ?, ?, ?)`
+	r, err := UserHandler.db.Exec(query, user.Name, user.Email, user.PhoneNumber, user.Password, user.UserRole)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
-		return
+		if strings.Contains(err.Error(), "Duplicate entry") {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "User already exists"})
+			return
+		}
 	}
 
 	// Add the new user to the cache
 	UserHandler.LoadUsersIntoCache()
-
+	id, _ := r.LastInsertId()
+	user.UserID = strconv.FormatInt(id, 10)
 	response := Response{
 		Status:  "success",
 		Message: "User created successfully",
@@ -166,14 +140,30 @@ func (UserHandler *UserHandler) GetUsersHandler(c *gin.Context) {
 func (UserHandler *UserHandler) UpdateUserHandler(c *gin.Context) {
 	userID := c.Param("id")
 	UserHandler.LoadUsersIntoCache()
-	var user Entities.User
-	if err := c.ShouldBindJSON(&user); err != nil {
+	OldInfouser, exists := UserHandler.GetUserByID(userID)
+	if !exists {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+	var NewInfouser Entities.User
+	if err := c.ShouldBindJSON(&NewInfouser); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	query := `UPDATE User SET Name = ?, Email = ?, UserRole = ? WHERE UserID = ?`
-	_, err := UserHandler.db.Exec(query, user.Name, user.Email, user.UserRole, userID)
+	if NewInfouser.Name == "" {
+		NewInfouser.Name = OldInfouser.Name
+	}
+	if NewInfouser.Email == "" {
+		NewInfouser.Email = OldInfouser.Email
+	}
+	if NewInfouser.UserRole == "" {
+		NewInfouser.UserRole = OldInfouser.UserRole
+	}
+	if NewInfouser.PhoneNumber == "" {
+		NewInfouser.PhoneNumber = OldInfouser.PhoneNumber
+	}
+	query := `UPDATE User SET Name = ?, PhoneNumber = ?, Email = ?, UserRole = ? WHERE UserID = ?`
+	_, err := UserHandler.db.Exec(query, NewInfouser.Name, NewInfouser.PhoneNumber, NewInfouser.Email, NewInfouser.UserRole, userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user"})
 		return
@@ -213,11 +203,11 @@ func (UserHandler *UserHandler) LoginHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	UserHandler.LoadUsersIntoCache()
 	// Get the existing user details from the database
+	var createTime []byte
 	var existingUser Entities.User
-	query := `SELECT UserID, Name, Email, Password FROM User WHERE Email = ?`
-	err := UserHandler.db.QueryRow(query, user.Email).Scan(&existingUser.UserID, &existingUser.Name, &existingUser.Email, &existingUser.Password)
+	query := `SELECT * FROM User WHERE Email = ?`
+	err := UserHandler.db.QueryRow(query, user.Email).Scan(&existingUser.UserID, &existingUser.Name, &existingUser.PhoneNumber, &existingUser.Email, &existingUser.Password, &createTime, &existingUser.UserRole)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// If the user does not exist, send an appropriate response message
@@ -231,7 +221,7 @@ func (UserHandler *UserHandler) LoginHandler(c *gin.Context) {
 		}
 		return
 	}
-
+	existingUser.CreateTime, _ = time.Parse("2006-01-02 15:04:05", string(createTime))
 	// Compare the supplied password with the stored password
 	if user.Password != existingUser.Password {
 		// If the password does not match, send an appropriate response message
@@ -251,3 +241,5 @@ func (UserHandler *UserHandler) LoginHandler(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, response)
 }
+
+//Completed by: Yousef Almutairi

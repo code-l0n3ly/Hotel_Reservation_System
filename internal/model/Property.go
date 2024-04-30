@@ -19,9 +19,6 @@ type Property struct {
 }
 
 func (p *Property) Validate() error {
-	if p.PropertyID == "" {
-		return errors.New("PropertyID is required")
-	}
 	if p.Name == "" {
 		return errors.New("name is required")
 	}
@@ -31,7 +28,6 @@ func (p *Property) Validate() error {
 	if p.Type == "" {
 		return errors.New("type is required")
 	}
-
 	if p.Description == "" {
 		return errors.New("description is required")
 	}

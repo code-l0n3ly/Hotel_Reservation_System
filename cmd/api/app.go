@@ -52,12 +52,12 @@ func (a *App) Initialize(user, password, address, dbname string) {
 func (a *App) initializeRoutes() {
 	Routes.RegisterUserRoutes(a.Router, a.UserHandler)
 	// Routes.RegisterReviewRoutes(a.Router, a.ReviewHandler)
-	// Routes.RegisterUnitRoutes(a.Router, a.UnitHandler)
+	Routes.RegisterUnitRoutes(a.Router, a.UnitHandler)
 	// Routes.RegisterBookingRoutes(a.Router, a.BookingHandler)
 	// Routes.RegisterReportRoutes(a.Router, a.ReportHandler)
 	// Routes.RegisterFinancialTransactionRoutes(a.Router, a.FinancialTransactionHandler)
 	// Routes.RegisterMaintenanceTicketRoutes(a.Router, a.MaintenanceTicketHandler)
-	// Routes.RegisterPropertyRoutes(a.Router, a.PropertyHandler)
+	Routes.RegisterPropertyRoutes(a.Router, a.PropertyHandler)
 	// Routes.RegisterMessageRoutes(a.Router, a.MessageHandler)
 }
 

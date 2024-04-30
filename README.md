@@ -22,7 +22,7 @@ Use the following URL to connect to the API: `aiscbackend-production.up.railway.
 
 ### Endpoints
 
-#### `POST /user`
+#### `POST /users/create`
 Creates a new user.
 
 ##### Parameters
@@ -30,12 +30,12 @@ Creates a new user.
 - `Email`: string
 - `PhoneNumber`: string
 - `Password`: string
-- `UserRole`: string
+- `UserRole`: ENUM('LandLord', 'Tenant', 'MaintenancePresenter')
 
 ##### Returns
 - The created User object
 
-#### `GET /user/{id}`
+#### `GET /users/{id}`
 Retrieves a user by ID.
 
 ##### Parameters
@@ -44,19 +44,19 @@ Retrieves a user by ID.
 ##### Returns
 - The requested User object
 
-#### `PUT /user/{id}`
+#### `PUT /users/{id}`
 Updates a user by ID.
 
 ##### Parameters
 - `id`: string (path parameter)
 - `Name`: string
 - `Email`: string
-- `UserRole`: string
+- `UserRole`: ENUM('LandLord', 'Tenant', 'MaintenancePresenter')
 
 ##### Returns
 - A message indicating the update was successful
 
-#### `DELETE /user/{id}`
+#### `DELETE /users/{id}`
 Deletes a user by ID.
 
 ##### Parameters
@@ -65,13 +65,13 @@ Deletes a user by ID.
 ##### Returns
 - A message indicating the deletion was successful
 
-#### `GET /user`
+#### `GET /users`
 Retrieves all users.
 
 ##### Returns
 - An array of User objects
 
-#### `POST /user/login`
+#### `POST /users/login`
 Authenticates a user.
 
 ##### Parameters
@@ -85,16 +85,16 @@ Authenticates a user.
 
 ### Endpoints
 
-#### `POST /property`
+#### `POST /property/create`
 Creates a new property.
 
 ##### Parameters
 - `OwnerID`: string
 - `Name`: string
 - `Address`: string
-- `Type`: string
+- `Type`: ENUM('Residential', 'Commercial')
 - `Description`: string
-- `Rules`: string
+- `Rules`: JSON
 - `Photos`: array of base64-encoded strings (images)
 
 ##### Returns
@@ -109,6 +109,39 @@ Retrieves a property by ID.
 ##### Returns
 - The requested Property object
 
+#### `GET /property/`
+Retrieves all properties.
+
+##### Returns
+- An array of Property objects
+
+#### `GET /property/owner/{id}`
+Retrieves all properties by UserID.
+
+##### Parameters
+- `id`: string (path parameter)
+
+##### Returns
+- An array of Property objects owned by the user
+
+#### `GET /property/AllUnits/{id}`
+Retrieves all units by PropertyID.
+
+##### Parameters
+- `id`: string (path parameter)
+
+##### Returns
+- An array of Unit objects owned by the property
+
+#### `GET /property/ByType/{type}`
+Retrieves all properties by Type.
+
+##### Parameters
+- `type`: string (path parameter)
+
+##### Returns
+- An array of Property objects of the specified type
+
 #### `PUT /property/{id}`
 Updates a property by ID.
 
@@ -117,9 +150,9 @@ Updates a property by ID.
 - `OwnerID`: string
 - `Name`: string
 - `Address`: string
-- `Type`: string
+- `Type`: ENUM('Residential', 'Commercial')
 - `Description`: string
-- `Rules`: string
+- `Rules`: JSON
 - `Photos`: array of base64-encoded strings (images)
 
 ##### Returns
@@ -134,15 +167,6 @@ Deletes a property by ID.
 ##### Returns
 - A message indicating the deletion was successful
 
-#### `GET /property/user/{id}`
-Retrieves all properties by UserID.
-
-##### Parameters
-- `id`: string (path parameter)
-
-##### Returns
-- An array of Property objects owned by the user
-
 ---
 
 ## UnitHandler API
@@ -156,8 +180,10 @@ Creates a new unit.
 - `PropertyID`: string
 - `Name`: string
 - `Description`: string
-- `OccupancyStatus`: string
-- `StructuralProperties`: string
+- `OccupancyStatus`: ENUM('Occupied', 'Available')
+- `StructuralProperties`: JSON
+- `RentalPrice`: float
+- `Rating`: float
 - `Images`: array of base64-encoded strings (images)
 
 ##### Returns
@@ -180,8 +206,10 @@ Updates a unit by ID.
 - `PropertyID`: string
 - `Name`: string
 - `Description`: string
-- `OccupancyStatus`: string
-- `StructuralProperties`: string
+- `OccupancyStatus`: ENUM('Occupied', 'Available')
+- `StructuralProperties`: JSON
+- `RentalPrice`: float
+- `Rating`: float
 - `Images`: array of base64-encoded strings (images)
 
 ##### Returns

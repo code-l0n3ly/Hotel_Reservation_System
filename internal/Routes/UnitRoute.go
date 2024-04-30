@@ -2,14 +2,16 @@ package Routes
 
 import (
 	handler "GraduationProject.com/m/internal/handler"
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 )
 
-func RegisterUnitRoutes(router *mux.Router, UnitHandler *handler.UnitHandler) {
-	router.HandleFunc("/units", UnitHandler.CreateUnit).Methods("POST")
-	router.HandleFunc("/units/{id}", UnitHandler.GetUnit).Methods("GET")
-	router.HandleFunc("/units/", UnitHandler.GetUnits).Methods("GET")
-	router.HandleFunc("/units/{id}", UnitHandler.UpdateUnit).Methods("PUT")
-	router.HandleFunc("/units/{id}", UnitHandler.DeleteUnit).Methods("DELETE")
-
+func RegisterUnitRoutes(router *gin.Engine, UnitHandler *handler.UnitHandler) {
+	units := router.Group("/units")
+	{
+		units.POST("/create", UnitHandler.CreateUnit)
+		units.GET("/:id", UnitHandler.GetUnit)
+		units.GET("/", UnitHandler.GetUnits)
+		units.PUT("/:id", UnitHandler.UpdateUnit)
+		units.DELETE("/:id", UnitHandler.DeleteUnit)
+	}
 }

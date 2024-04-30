@@ -19,17 +19,14 @@ type Unit struct {
 }
 
 func (u *Unit) Validate() error {
-	if u.UnitID == "" {
-		return errors.New("UnitID is required")
-	}
 	if u.PropertyID == "" {
 		return errors.New("PropertyID is required")
 	}
-	if u.RentalPrice <= 0 {
+	if u.RentalPrice < 0 {
 		return errors.New("RentalPrice must be greater than 0")
 	}
 	if u.OccupancyStatus == "" {
-		return errors.New("OccupancyStatus is required")
+		return errors.New("OccupancyStatus is required Expected values: 'occupied' or 'available'")
 	}
 	if u.StructuralProperties == "" {
 		return errors.New("StructuralProperties is required")
