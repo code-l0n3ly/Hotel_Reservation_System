@@ -72,10 +72,11 @@ func (UserHandler *UserHandler) CreateUserHandler(c *gin.Context) {
 	if !user.IsEmailValid() {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Email is not valid"})
 		return
-	} else if !user.IsPasswordStrong() {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Password is not strong enough"})
-		return
 	}
+	// else if !user.IsPasswordStrong() {
+	// 	c.JSON(http.StatusBadRequest, gin.H{"error": "Password is not strong enough"})
+	// 	return
+	// }
 	query := `INSERT INTO User (Name, Email, PhoneNumber, Password, UserRole) VALUES (?, ?, ?, ?, ?)`
 	r, err := UserHandler.db.Exec(query, user.Name, user.Email, user.PhoneNumber, user.Password, user.UserRole)
 	if err != nil {
