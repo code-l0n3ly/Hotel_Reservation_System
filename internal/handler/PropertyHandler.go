@@ -23,7 +23,7 @@ func NewPropertyHandler(db *sql.DB) *PropertyHandler {
 }
 
 func (PropertyHandler *PropertyHandler) LoadProperties() error {
-	rows, err := PropertyHandler.db.Query(`SELECT OwnerID, Name, Address, Description, Type, Rules FROM Property`)
+	rows, err := PropertyHandler.db.Query(`SELECT OwnerID, Name, Address, Description, Type, Rules, CreateTime FROM Property`)
 	if err != nil {
 		return err
 	}
