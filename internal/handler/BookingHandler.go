@@ -2,138 +2,130 @@ package Handlers
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	Entities "GraduationProject.com/m/internal/model"
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 )
 
 type BookingHandler struct {
-	db                 *sql.DB
-	BookingIdReference int64
-	cache              map[string]Entities.Booking // Cache to hold bookings in memory
+	db    *sql.DB
+	cache map[string]Entities.Booking // Cache to hold bookings in memory
 }
 
 func NewBookingHandler(db *sql.DB) *BookingHandler {
 	return &BookingHandler{
-		db:                 db,
-		BookingIdReference: 0,
-		cache:              make(map[string]Entities.Booking),
+		db:    db,
+		cache: make(map[string]Entities.Booking),
 	}
 }
 
-func (handler *BookingHandler) GenerateUniqueBookingID() string {
-	handler.BookingIdReference++
-	return fmt.Sprintf("%d", handler.BookingIdReference)
-}
-
-func (handler *BookingHandler) SetHighestBookingID() {
-	highestID := int64(0)
-	for _, booking := range handler.cache {
-		bookingID, err := strconv.ParseInt(booking.BookingID, 10, 64)
-		if err != nil {
-			continue // Skip if the BookingID is not a valid integer
-		}
-		if bookingID > highestID {
-			highestID = bookingID
-		}
-	}
-	handler.BookingIdReference = highestID
-}
-
-func (handler *BookingHandler) LoadBookings() error {
-	rows, err := handler.db.Query(`SELECT BookingID, UnitID, UserID, StartDate, EndDate, CreateTime, Summary FROM Booking`)
+func (BookingHandler *BookingHandler) LoadBookings() error {
+	rows, err := BookingHandler.db.Query(`SELECT BookingID, UnitID, UserID, EndDate, CreateTime, StartDate, Summary FROM Booking`)
 	if err != nil {
 		return err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
+		var createTime []byte
+		var StartDate []byte
+		var EndDate []byte
 		var booking Entities.Booking
-		if err := rows.Scan(&booking.BookingID, &booking.UnitID, &booking.UserID, &booking.StartDate, &booking.EndDate, &booking.CreateTime, &booking.Summary); err != nil {
+		if err := rows.Scan(&booking.BookingID, &booking.UnitID, &booking.UserID, &EndDate, &createTime, &StartDate, &booking.Summary); err != nil {
+			fmt.Println(err.Error())
 			return err
 		}
-		handler.cache[booking.BookingID] = booking
+		booking.CreateTime, _ = time.Parse("2006-01-02 15:04:05", string(createTime))
+		booking.StartDate, _ = time.Parse("2006-01-02 15:04:05", string(StartDate))
+		booking.EndDate, _ = time.Parse("2006-01-02 15:04:05", string(EndDate))
+		fmt.Println(booking)
+		BookingHandler.cache[booking.BookingID] = booking
 	}
-	handler.SetHighestBookingID()
 	return rows.Err()
 }
 
-func (handler *BookingHandler) CreateBooking(w http.ResponseWriter, r *http.Request) {
+func (BookingHandler *BookingHandler) CreateBooking(c *gin.Context) {
 	var booking Entities.Booking
-	err := json.NewDecoder(r.Body).Decode(&booking)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	handler.LoadBookings()
+	BookingHandler.LoadBookings()
 
-	query := `INSERT INTO Booking (BookingID, UnitID, UserID, StartDate, EndDate, CreateTime, Summary) VALUES (?, ?, ?, ?, ?, ?, ?)`
-	_, err = handler.db.Exec(query, booking.BookingID, booking.UnitID, booking.UserID, booking.StartDate, booking.EndDate, booking.CreateTime, booking.Summary)
+	err := c.BindJSON(&booking)
 	if err != nil {
-		http.Error(w, "Failed to create booking", http.StatusInternalServerError)
+		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": err.Error()})
 		return
 	}
-	handler.LoadBookings()
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(handler.cache[booking.BookingID]) // Respond with the created booking object
+	query := `INSERT INTO Booking (UnitID, UserID, EndDate, StartDate, Summary) VALUES (?, ?, ?, ?, ?)`
+	result, err := BookingHandler.db.Exec(query, booking.UnitID, booking.UserID, booking.EndDate, booking.StartDate, booking.Summary)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Failed to create booking" + err.Error()})
+		return
+	}
+	id, _ := result.LastInsertId()
+	booking.BookingID = strconv.FormatInt(id, 10)
+	BookingHandler.LoadBookings()
+	c.JSON(http.StatusCreated, gin.H{"status": "success", "message": "Booking created successfully", "data": BookingHandler.cache[booking.BookingID]})
 }
 
-func (handler *BookingHandler) GetBooking(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	bookingID := params["id"]
+func (BookingHandler *BookingHandler) GetBooking(c *gin.Context) {
+	bookingID := c.Param("id")
+	BookingHandler.LoadBookings()
 
-	var booking Entities.Booking
-	query := `SELECT BookingID, UnitID, UserID, StartDate, EndDate, CreateTime, Summary FROM Booking WHERE BookingID = ?`
-	err := handler.db.QueryRow(query, bookingID).Scan(&booking.BookingID, &booking.UnitID, &booking.UserID, &booking.StartDate, &booking.EndDate, &booking.CreateTime, &booking.Summary)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			http.NotFound(w, r)
-			return
-		}
-		http.Error(w, "Failed to retrieve booking", http.StatusInternalServerError)
+	booking, exists := BookingHandler.cache[bookingID]
+	if !exists {
+		c.JSON(http.StatusNotFound, gin.H{"status": "error", "message": "Not found"})
 		return
 	}
 
-	json.NewEncoder(w).Encode(booking)
+	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Booking retrieved successfully", "data": booking})
 }
 
-func (handler *BookingHandler) UpdateBooking(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	bookingID := params["id"]
-	handler.LoadBookings()
-	var booking Entities.Booking
-	err := json.NewDecoder(r.Body).Decode(&booking)
+func (BookingHandler *BookingHandler) UpdateBooking(c *gin.Context) {
+	bookingID := c.Param("id")
+	BookingHandler.LoadBookings()
+
+	var newInfoBooking Entities.Booking
+	oldInfoBooking := BookingHandler.cache[bookingID]
+
+	err := c.BindJSON(&newInfoBooking)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": err.Error()})
 		return
 	}
 
-	query := `UPDATE Booking SET UnitID = ?, UserID = ?, StartDate = ?, EndDate = ?, CreateTime = ?, Summary = ? WHERE BookingID = ?`
-	_, err = handler.db.Exec(query, booking.UnitID, booking.UserID, booking.StartDate, booking.EndDate, booking.CreateTime, booking.Summary, bookingID)
+	if !newInfoBooking.StartDate.IsZero() {
+		oldInfoBooking.StartDate = newInfoBooking.StartDate
+	}
+	if !newInfoBooking.EndDate.IsZero() {
+		oldInfoBooking.EndDate = newInfoBooking.EndDate
+	}
+	if newInfoBooking.Summary != "" {
+		oldInfoBooking.Summary = newInfoBooking.Summary
+	}
+
+	query := `UPDATE Booking SET StartDate = ?, EndDate = ?, Summary = ? WHERE BookingID = ?`
+	_, err = BookingHandler.db.Exec(query, oldInfoBooking.StartDate, oldInfoBooking.EndDate, oldInfoBooking.Summary, oldInfoBooking.BookingID)
 	if err != nil {
-		http.Error(w, "Failed to update booking", http.StatusInternalServerError)
+		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Failed to update booking" + err.Error()})
 		return
 	}
-	handler.LoadBookings()
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode("Booking updated successfully")
+
+	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Booking updated successfully", "Data": oldInfoBooking})
 }
 
-func (handler *BookingHandler) DeleteBooking(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	bookingID := params["id"]
-	handler.LoadBookings()
+func (BookingHandler *BookingHandler) DeleteBooking(c *gin.Context) {
+	bookingID := c.Param("id")
+	BookingHandler.LoadBookings()
+
 	query := `DELETE FROM Booking WHERE BookingID = ?`
-	_, err := handler.db.Exec(query, bookingID)
+	_, err := BookingHandler.db.Exec(query, bookingID)
 	if err != nil {
-		http.Error(w, "Failed to delete booking", http.StatusInternalServerError)
+		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Failed to delete booking" + err.Error()})
 		return
 	}
-	handler.LoadBookings()
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode("Booking deleted successfully")
+
+	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Booking deleted successfully", "data": BookingHandler.cache[bookingID]})
+	BookingHandler.LoadBookings()
 }
