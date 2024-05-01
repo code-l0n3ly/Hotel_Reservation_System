@@ -8,6 +8,7 @@ import (
 	Routes "GraduationProject.com/m/internal/Routes"
 	Database "GraduationProject.com/m/internal/db"
 	Handlers "GraduationProject.com/m/internal/handler"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -36,6 +37,7 @@ func (a *App) Initialize(user, password, address, dbname string) {
 		log.Fatal(err)
 	}
 	a.Router = gin.Default()
+	a.Router.Use(cors.Default()) // Add this line
 	a.UserHandler = Handlers.NewUserHandler(a.DB.Db)
 	a.UnitHandler = Handlers.NewUnitHandler(a.DB.Db)
 	a.ReviewHandler = Handlers.NewReviewHandler(a.DB.Db)
