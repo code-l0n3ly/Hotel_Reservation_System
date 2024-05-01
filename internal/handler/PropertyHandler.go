@@ -23,7 +23,7 @@ func NewPropertyHandler(db *sql.DB) *PropertyHandler {
 }
 
 func (PropertyHandler *PropertyHandler) LoadProperties() error {
-	rows, err := PropertyHandler.db.Query(`SELECT OwnerID, Name, Address, Description, Type, Rules, CreateTime FROM Property`)
+	rows, err := PropertyHandler.db.Query(`SELECT PropertyID, OwnerID, Name, Address, Description, Type, Rules, CreateTime FROM Property`)
 	if err != nil {
 		return err
 	}
@@ -32,11 +32,11 @@ func (PropertyHandler *PropertyHandler) LoadProperties() error {
 	for rows.Next() {
 		var createTime []byte
 		var property Entities.Property
-		if err := rows.Scan(&property.OwnerID, &property.Name, &property.Address, &property.Description, &property.Type, &property.Rules, &createTime); err != nil {
+		if err := rows.Scan(&property.PropertyID, &property.OwnerID, &property.Name, &property.Address, &property.Description, &property.Type, &property.Rules, &createTime); err != nil {
 			return err
 		}
 		property.CreateTime, _ = time.Parse("2006-01-02 15:04:05", string(createTime))
-		PropertyHandler.cache[property.OwnerID] = property
+		PropertyHandler.cache[property.PropertyID] = property
 	}
 	return rows.Err()
 }
