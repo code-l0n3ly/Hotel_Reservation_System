@@ -222,3 +222,26 @@ func (UnitHandler *UnitHandler) DeleteUnit(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Unit deleted successfully", "data": UnitHandler.cache[unitID]})
 	UnitHandler.LoadUnits()
 }
+
+// GetAllUnits : Gets all the units that are available
+func (UnitHandler *UnitHandler) GetAllAvailableUnits(c *gin.Context) {
+	UnitHandler.LoadUnits()
+	var units []Entities.Unit
+	for _, unit := range UnitHandler.cache {
+		if unit.OccupancyStatus == "Available" {
+			units = append(units, unit)
+		}
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Units retrieved successfully", "data": units})
+}
+
+func (UnitHandler *UnitHandler) GetAllOccupiedUnits(c *gin.Context) {
+	UnitHandler.LoadUnits()
+	var units []Entities.Unit
+	for _, unit := range UnitHandler.cache {
+		if unit.OccupancyStatus == "Occupied" {
+			units = append(units, unit)
+		}
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Units retrieved successfully", "data": units})
+}
