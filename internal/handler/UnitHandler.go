@@ -2,8 +2,10 @@ package Handlers
 
 import (
 	"database/sql"
+	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	Entities "GraduationProject.com/m/internal/model"
@@ -25,8 +27,18 @@ func NewUnitHandler(db *sql.DB) *UnitHandler {
 }
 
 func (UnitHandler *UnitHandler) LoadUnits() error {
-	rows, err := UnitHandler.db.Query(`SELECT UnitID, PropertyID, Name, RentalPrice, Description, Rating, OccupancyStatus, StructuralProperties, CreateTime FROM Unit`)
+	query := `
+        SELECT 
+            u.UnitID, u.PropertyID, u.AddressID, u.Name, u.RentalPrice, u.Description, u.Rating, u.OccupancyStatus, u.StructuralProperties, u.CreateTime,
+            a.AddressID, a.Country, a.City, a.State, a.Street, a.PostalCode, a.AdditionalNumber, a.MapLocation, a.Latitude, a.Longitude
+        FROM 
+            Unit u
+        LEFT JOIN 
+            Address a ON u.AddressID = a.AddressID
+    `
+	rows, err := UnitHandler.db.Query(query)
 	if err != nil {
+		fmt.Println(err.Error())
 		return err
 	}
 	defer rows.Close()
@@ -34,13 +46,15 @@ func (UnitHandler *UnitHandler) LoadUnits() error {
 	for rows.Next() {
 		var createTime []byte
 		var unit Entities.Unit
-		if err := rows.Scan(&unit.UnitID, &unit.PropertyID, &unit.Name, &unit.RentalPrice, &unit.Description, &unit.Rating, &unit.OccupancyStatus, &unit.StructuralProperties, &createTime); err != nil {
-			return err
+		var address Entities.Address
+		if err := rows.Scan(&unit.UnitID, &unit.PropertyID, &unit.AddressID, &unit.Name, &unit.RentalPrice, &unit.Description, &unit.Rating, &unit.OccupancyStatus, &unit.StructuralProperties, &createTime, &address.AddressID, &address.Country, &address.City, &address.State, &address.Street, &address.PostalCode, &address.AdditionalNumber, &address.MapLocation, &address.Latitude, &address.Longitude); err != nil {
+			fmt.Println(err.Error())
 		}
-		unit.CreateTime, err = time.Parse("2006-01-02 15:04:05", string(createTime))
-		if err != nil {
-			return err
-		}
+		unit.CreateTime, _ = time.Parse("2006-01-02 15:04:05", string(createTime))
+
+		// Save the grouped object to the cache
+		unit.Address = address
+		fmt.Println(unit)
 		UnitHandler.cache[unit.UnitID] = unit
 	}
 	return rows.Err()
@@ -61,13 +75,22 @@ func (UnitHandler *UnitHandler) CreateUnit(c *gin.Context) {
 		return
 	}
 
-	query := `INSERT INTO Unit (PropertyID, Name, RentalPrice, Description, Rating, OccupancyStatus, StructuralProperties) VALUES (?, ?, ?, ?, ?, ?, ?)`
-	tx, err := UnitHandler.db.Begin()
+	tx, _ := UnitHandler.db.Begin()
+	addressQuery := `INSERT INTO Address (Country, City, State, Street, PostalCode, AdditionalNumber, MapLocation, Latitude, Longitude) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	addressResult, err := tx.Exec(addressQuery, unit.Address.Country, unit.Address.City, unit.Address.State, unit.Address.Street, unit.Address.PostalCode, unit.Address.AdditionalNumber, unit.Address.MapLocation, unit.Address.Latitude, unit.Address.Longitude)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Failed to create address" + err.Error()})
+		return
+	}
+	AddressID, _ := addressResult.LastInsertId()
+	unit.AddressID = strconv.FormatInt(AddressID, 10)
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Failed to create unit"})
 		return
 	}
-	result, err := tx.Exec(query, unit.PropertyID, unit.Name, unit.RentalPrice, unit.Description, unit.Rating, unit.OccupancyStatus, unit.StructuralProperties)
+	query := `INSERT INTO Unit (PropertyID, AddressID, Name, RentalPrice, Description, Rating, OccupancyStatus, StructuralProperties) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+	result, err := tx.Exec(query, unit.PropertyID, unit.AddressID, unit.Name, unit.RentalPrice, unit.Description, unit.Rating, unit.OccupancyStatus, unit.StructuralProperties)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Failed to create unit" + err.Error()})
 		return
@@ -76,6 +99,7 @@ func (UnitHandler *UnitHandler) CreateUnit(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Failed to retrieve unit ID" + err.Error()})
 		return
 	}
+
 	if unit.Images != nil {
 		for _, image := range unit.Images {
 			_, err = tx.Exec(`INSERT INTO Images (UnitID, Image, Type) VALUES (?, ?, ?)`, unit.UnitID, image, "Unit")
@@ -85,9 +109,9 @@ func (UnitHandler *UnitHandler) CreateUnit(c *gin.Context) {
 			}
 		}
 	}
-	err = tx.Commit()
 	id, _ := result.LastInsertId()
 	unit.UnitID = strconv.FormatInt(id, 10)
+	err = tx.Commit()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Failed to create unit" + err.Error()})
 		return
@@ -99,24 +123,10 @@ func (UnitHandler *UnitHandler) CreateUnit(c *gin.Context) {
 func (UnitHandler *UnitHandler) GetUnit(c *gin.Context) {
 	unitID := c.Param("id")
 	UnitHandler.LoadUnits()
-	var unit Entities.Unit
-	var createTime []byte
 
-	query := `SELECT UnitID, PropertyID, Name, RentalPrice, Description, Rating, OccupancyStatus, StructuralProperties, CreateTime FROM Unit WHERE UnitID = ?`
-	err := UnitHandler.db.QueryRow(query, unitID).Scan(&unit.UnitID, &unit.PropertyID, &unit.Name, &unit.RentalPrice, &unit.Description, &unit.Rating, &unit.OccupancyStatus, &unit.StructuralProperties, &createTime)
-
-	if err != nil {
-		if err == sql.ErrNoRows {
-			c.JSON(http.StatusNotFound, gin.H{"status": "error", "message": "Not found"})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Failed to retrieve unit" + err.Error()})
-		return
-	}
-
-	unit.CreateTime, err = time.Parse("2006-01-02 15:04:05", string(createTime))
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Failed to retrieve unit" + err.Error()})
+	unit, ok := UnitHandler.cache[unitID]
+	if !ok {
+		c.JSON(http.StatusNotFound, gin.H{"status": "error", "message": "Not found"})
 		return
 	}
 
@@ -137,69 +147,84 @@ func (UnitHandler *UnitHandler) UpdateUnit(c *gin.Context) {
 	unitID := c.Param("id")
 	UnitHandler.LoadUnits()
 	var NewInfoUnit Entities.Unit
-	OldInfoUnit := UnitHandler.cache[unitID]
+	OldInfoUnit, ok := UnitHandler.cache[unitID]
+	if !ok {
+		c.JSON(http.StatusNotFound, gin.H{"status": "error", "message": "Unit not found"})
+		return
+	}
+
 	err := c.BindJSON(&NewInfoUnit)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": err.Error()})
 		return
 	}
+
 	errValid := NewInfoUnit.Validate()
 	if errValid != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": errValid})
 		return
 	}
+
+	// Prepare dynamic SQL for unit update
+	updateUnitQuery := "UPDATE Unit SET "
+	updateUnitParams := []interface{}{}
+	fields := []string{}
+
 	if NewInfoUnit.PropertyID != "" {
+		fields = append(fields, "PropertyID = ?")
+		updateUnitParams = append(updateUnitParams, NewInfoUnit.PropertyID)
 		OldInfoUnit.PropertyID = NewInfoUnit.PropertyID
 	}
 	if NewInfoUnit.Name != "" {
+		fields = append(fields, "Name = ?")
+		updateUnitParams = append(updateUnitParams, NewInfoUnit.Name)
 		OldInfoUnit.Name = NewInfoUnit.Name
 	}
 	if NewInfoUnit.Description != "" {
+		fields = append(fields, "Description = ?")
+		updateUnitParams = append(updateUnitParams, NewInfoUnit.Description)
 		OldInfoUnit.Description = NewInfoUnit.Description
 	}
 	if NewInfoUnit.OccupancyStatus != "" {
+		fields = append(fields, "OccupancyStatus = ?")
+		updateUnitParams = append(updateUnitParams, NewInfoUnit.OccupancyStatus)
 		OldInfoUnit.OccupancyStatus = NewInfoUnit.OccupancyStatus
 	}
 	if NewInfoUnit.StructuralProperties != "" {
+		fields = append(fields, "StructuralProperties = ?")
+		updateUnitParams = append(updateUnitParams, NewInfoUnit.StructuralProperties)
 		OldInfoUnit.StructuralProperties = NewInfoUnit.StructuralProperties
 	}
 	if NewInfoUnit.Rating != 0 {
+		fields = append(fields, "Rating = ?")
+		updateUnitParams = append(updateUnitParams, NewInfoUnit.Rating)
 		OldInfoUnit.Rating = NewInfoUnit.Rating
 	}
 	if NewInfoUnit.RentalPrice != 0 {
+		fields = append(fields, "RentalPrice = ?")
+		updateUnitParams = append(updateUnitParams, NewInfoUnit.RentalPrice)
 		OldInfoUnit.RentalPrice = NewInfoUnit.RentalPrice
 	}
-	query := `UPDATE Unit SET Name = ?, Description = ?, RentalPrice = ?, Rating = ?, OccupancyStatus = ?, StructuralProperties = ? WHERE UnitID = ?`
-	_, err = UnitHandler.db.Exec(query, OldInfoUnit.Name, OldInfoUnit.Description, OldInfoUnit.RentalPrice, OldInfoUnit.Rating, OldInfoUnit.OccupancyStatus, OldInfoUnit.StructuralProperties, OldInfoUnit.UnitID)
+
+	updateUnitQuery += strings.Join(fields, ", ") + " WHERE UnitID = ?"
+	updateUnitParams = append(updateUnitParams, OldInfoUnit.UnitID)
+
+	_, err = UnitHandler.db.Exec(updateUnitQuery, updateUnitParams...)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Failed to update unit" + err.Error()})
 		return
 	}
 
-	rows, err := UnitHandler.db.Query(`SELECT Image FROM Images WHERE UnitID = ?`, unitID)
-	if err != nil {
-	} else {
-		var existingImages []string
-		for rows.Next() {
-			var image string
-			if err := rows.Scan(&image); err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Failed to update unit" + err.Error()})
-				return
-			}
-			existingImages = append(existingImages, image)
-		}
-
-		if len(existingImages) > 0 {
-			_, err = UnitHandler.db.Exec(`DELETE FROM Images WHERE UnitID = ?`, unitID)
-			if err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Failed to update unit" + err.Error()})
-				return
-			}
-		}
-	}
+	// Handle images
 	if NewInfoUnit.Images != nil {
+		_, err = UnitHandler.db.Exec(`DELETE FROM Images WHERE UnitID = ?`, unitID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Failed to update unit" + err.Error()})
+			return
+		}
+
 		for _, image := range NewInfoUnit.Images {
-			_, err = UnitHandler.db.Exec(`INSERT INTO Images (UnitID, Image, Type) VALUES (?, ?, ?, ?, ?)`, OldInfoUnit.UnitID, image, "Unit")
+			_, err = UnitHandler.db.Exec(`INSERT INTO Images (UnitID, Image, Type) VALUES (?, ?, ?)`, OldInfoUnit.UnitID, image, "Unit")
 			if err != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Failed to update unit" + err.Error()})
 				return
@@ -207,6 +232,58 @@ func (UnitHandler *UnitHandler) UpdateUnit(c *gin.Context) {
 		}
 	}
 
+	// Update the address related to the unit
+	addressQuery := "UPDATE Address SET "
+	params := []interface{}{}
+
+	if NewInfoUnit.Address.Country != "" {
+		addressQuery += "Country = ?, "
+		params = append(params, NewInfoUnit.Address.Country)
+	}
+	if NewInfoUnit.Address.City != "" {
+		addressQuery += "City = ?, "
+		params = append(params, NewInfoUnit.Address.City)
+	}
+	if NewInfoUnit.Address.State != "" {
+		addressQuery += "State = ?, "
+		params = append(params, NewInfoUnit.Address.State)
+	}
+	if NewInfoUnit.Address.Street != "" {
+		addressQuery += "Street = ?, "
+		params = append(params, NewInfoUnit.Address.Street)
+	}
+	if NewInfoUnit.Address.PostalCode != "" {
+		addressQuery += "PostalCode = ?, "
+		params = append(params, NewInfoUnit.Address.PostalCode)
+	}
+	if NewInfoUnit.Address.AdditionalNumber != "" {
+		addressQuery += "AdditionalNumber = ?, "
+		params = append(params, NewInfoUnit.Address.AdditionalNumber)
+	}
+	if NewInfoUnit.Address.MapLocation != "" {
+		addressQuery += "MapLocation = ?, "
+		params = append(params, NewInfoUnit.Address.MapLocation)
+	}
+	if NewInfoUnit.Address.Latitude != "" {
+		addressQuery += "Latitude = ?, "
+		params = append(params, NewInfoUnit.Address.Latitude)
+	}
+	if NewInfoUnit.Address.Longitude != "" {
+		addressQuery += "Longitude = ?, "
+		params = append(params, NewInfoUnit.Address.Longitude)
+	}
+
+	// Remove the trailing comma and space
+	addressQuery = addressQuery[:len(addressQuery)-2]
+
+	addressQuery += " WHERE AddressID = ?"
+	params = append(params, NewInfoUnit.AddressID)
+
+	_, err = UnitHandler.db.Exec(addressQuery, params...)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update address"})
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Unit updated successfully", "Data": OldInfoUnit})
 }
 

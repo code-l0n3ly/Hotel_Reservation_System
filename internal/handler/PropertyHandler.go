@@ -2,6 +2,7 @@ package Handlers
 
 import (
 	"database/sql"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -23,8 +24,18 @@ func NewPropertyHandler(db *sql.DB) *PropertyHandler {
 }
 
 func (PropertyHandler *PropertyHandler) LoadProperties() error {
-	rows, err := PropertyHandler.db.Query(`SELECT PropertyID, OwnerID, Name, Address, Description, Type, Rules, CreateTime FROM Property`)
+	query := `
+        SELECT 
+            p.PropertyID, p.OwnerID, p.AddressID,  p.Name, p.Description, p.Type, p.Rules, p.CreateTime,
+            a.AddressID, a.Country, a.City, a.State, a.Street, a.PostalCode, a.AdditionalNumber, a.MapLocation, a.Latitude, a.Longitude
+        FROM 
+            Property p
+        LEFT JOIN 
+            Address a ON p.AddressID = a.AddressID
+    `
+	rows, err := PropertyHandler.db.Query(query)
 	if err != nil {
+		fmt.Println(err.Error())
 		return err
 	}
 	defer rows.Close()
@@ -32,10 +43,15 @@ func (PropertyHandler *PropertyHandler) LoadProperties() error {
 	for rows.Next() {
 		var createTime []byte
 		var property Entities.Property
-		if err := rows.Scan(&property.PropertyID, &property.OwnerID, &property.Name, &property.Address, &property.Description, &property.Type, &property.Rules, &createTime); err != nil {
-			return err
+		var address Entities.Address
+		if err := rows.Scan(&property.PropertyID, &property.OwnerID, &property.AddressID, &property.Name, &property.Description, &property.Type, &property.Rules, &createTime, &address.AddressID, &address.Country, &address.City, &address.State, &address.Street, &address.PostalCode, &address.AdditionalNumber, &address.MapLocation, &address.Latitude, &address.Longitude); err != nil {
+			fmt.Println(err.Error())
 		}
 		property.CreateTime, _ = time.Parse("2006-01-02 15:04:05", string(createTime))
+
+		// Save the grouped object to the cache
+		property.Address = address
+		fmt.Println(property)
 		PropertyHandler.cache[property.PropertyID] = property
 	}
 	return rows.Err()
@@ -47,7 +63,7 @@ func (PropertyHandler *PropertyHandler) CreateProperty(c *gin.Context) {
 
 	err := c.BindJSON(&property)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message here": err.Error()})
 		return
 	}
 
@@ -57,16 +73,33 @@ func (PropertyHandler *PropertyHandler) CreateProperty(c *gin.Context) {
 		return
 	}
 
-	query := `INSERT INTO Property (OwnerID, Name, Address, Description, Type, Rules) VALUES (?, ?, ?, ?, ?, ?)`
-	result, err := PropertyHandler.db.Exec(query, property.OwnerID, property.Name, property.Address, property.Description, property.Type, property.Rules)
+	tx, err := PropertyHandler.db.Begin()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Failed to create property"})
+		return
+	}
+
+	// Insert into Address table
+	addressQuery := `INSERT INTO Address (Country, City, State, Street, PostalCode, AdditionalNumber, MapLocation, Latitude, Longitude) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	addressResult, err := tx.Exec(addressQuery, property.Address.Country, property.Address.City, property.Address.State, property.Address.Street, property.Address.PostalCode, property.Address.AdditionalNumber, property.Address.MapLocation, property.Address.Latitude, property.Address.Longitude)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Failed to create address" + err.Error()})
+		return
+	}
+	AddressID, _ := addressResult.LastInsertId()
+	property.AddressID = strconv.FormatInt(AddressID, 10)
+	// Insert into Property table
+	propertyQuery := `INSERT INTO Property (OwnerID, AddressID, Name, Description, Type, Rules) VALUES (?, ?, ?, ?, ?, ?)`
+	propertyResult, err := tx.Exec(propertyQuery, property.OwnerID, property.AddressID, property.Name, property.Description, property.Type, property.Rules)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Failed to create property" + err.Error()})
 		return
 	}
-	id, _ := result.LastInsertId()
-	property.PropertyID = strconv.FormatInt(id, 10)
+	propertyID, _ := propertyResult.LastInsertId()
+	property.PropertyID = strconv.FormatInt(propertyID, 10)
+	tx.Commit()
 	PropertyHandler.LoadProperties()
-	c.JSON(http.StatusCreated, gin.H{"status": "success", "message": "Property created successfully", "data": PropertyHandler.cache[property.OwnerID]})
+	c.JSON(http.StatusCreated, gin.H{"status": "success", "message": "Property created successfully", "data": PropertyHandler.cache[property.PropertyID]})
 }
 
 func (PropertyHandler *PropertyHandler) GetProperty(c *gin.Context) {
@@ -113,9 +146,6 @@ func (PropertyHandler *PropertyHandler) UpdateProperty(c *gin.Context) {
 
 	if newInfoProperty.Name != "" {
 		oldInfoProperty.Name = newInfoProperty.Name
-	}
-	if newInfoProperty.Address != "" {
-		oldInfoProperty.Address = newInfoProperty.Address
 	}
 	if newInfoProperty.Description != "" {
 		oldInfoProperty.Description = newInfoProperty.Description
@@ -181,7 +211,17 @@ func (PropertyHandler *PropertyHandler) GetPropertiesByType(c *gin.Context) {
 func (PropertyHandler *PropertyHandler) GetUnitsByPropertyID(c *gin.Context) {
 	propertyID := c.Param("id")
 
-	query := `SELECT UnitID, PropertyID, Name, RentalPrice, Description, Rating, OccupancyStatus, StructuralProperties, CreateTime FROM Unit WHERE PropertyID = ?`
+	query := `
+        SELECT 
+            u.UnitID, u.PropertyID, u.Name, u.RentalPrice, u.Description, u.Rating, u.OccupancyStatus, u.StructuralProperties, u.CreateTime,
+            a.AddressID, a.PropertyID, a.UnitID, a.Country, a.City, a.State, a.Street, a.PostalCode, a.AdditionalCode, a.MapLocation, a.Latitude, a.Longitude
+        FROM 
+            Unit u
+        LEFT JOIN 
+            Address a ON u.UnitID = a.UnitID
+        WHERE 
+            u.PropertyID = ?
+    `
 	rows, err := PropertyHandler.db.Query(query, propertyID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Failed to retrieve units: " + err.Error()})
@@ -193,7 +233,8 @@ func (PropertyHandler *PropertyHandler) GetUnitsByPropertyID(c *gin.Context) {
 	for rows.Next() {
 		var createTime []byte
 		var unit Entities.Unit
-		if err := rows.Scan(&unit.UnitID, &unit.PropertyID, &unit.Name, &unit.RentalPrice, &unit.Description, &unit.Rating, &unit.OccupancyStatus, &unit.StructuralProperties, &createTime); err != nil {
+		var address Entities.Address
+		if err := rows.Scan(&unit.UnitID, &unit.PropertyID, &unit.Name, &unit.RentalPrice, &unit.Description, &unit.Rating, &unit.OccupancyStatus, &unit.StructuralProperties, &createTime, &address.AddressID, &address.Country, &address.City, &address.State, &address.Street, &address.PostalCode, &address.AdditionalNumber, &address.MapLocation, &address.Latitude, &address.Longitude); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Failed to scan units: " + err.Error()})
 			return
 		}
@@ -202,6 +243,7 @@ func (PropertyHandler *PropertyHandler) GetUnitsByPropertyID(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Failed to parse time: " + err.Error()})
 			return
 		}
+		unit.Address = address
 		units = append(units, unit)
 	}
 

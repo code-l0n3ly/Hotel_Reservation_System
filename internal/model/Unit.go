@@ -7,6 +7,7 @@ import (
 
 type Unit struct {
 	UnitID               string    `json:"unitID"`
+	AddressID            string    `json:"addressID"`
 	Name                 string    `json:"name,omitempty"` // Optional field
 	Images               [][]byte  `json:"images,omitempty"`
 	Description          string    `json:"description,omitempty"`
@@ -16,6 +17,7 @@ type Unit struct {
 	OccupancyStatus      string    `json:"occupancyStatus"`
 	StructuralProperties string    `json:"structuralProperties"` // Assuming JSON data as a string; adjust according to your needs
 	CreateTime           time.Time `json:"createTime"`
+	Address              Address   `json:"address"`
 }
 
 func (u *Unit) Validate() error {

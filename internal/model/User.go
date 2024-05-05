@@ -9,12 +9,14 @@ import (
 
 type User struct {
 	UserID      string    `json:"userID"`
+	AddressID   string    `json:"addressID,omitempty"`
 	Name        string    `json:"name"`
 	Email       string    `json:"email,omitempty"`
 	PhoneNumber string    `json:"phoneNumber,omitempty"`
 	Password    string    `json:"password"`
 	CreateTime  time.Time `json:"createTime"`
 	UserRole    string    `json:"userRole"`
+	Address     Address   `json:"address,omitempty"`
 }
 
 func (u *User) Validate() error {
