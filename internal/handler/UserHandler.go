@@ -293,7 +293,7 @@ func (UserHandler *UserHandler) LoginHandler(c *gin.Context) {
 	var createTime []byte
 	var existingUser Entities.User
 	query := `SELECT * FROM User WHERE Email = ?`
-	err := UserHandler.db.QueryRow(query, user.Email).Scan(&existingUser.UserID, &existingUser.Name, &existingUser.PhoneNumber, &existingUser.Email, &existingUser.Password, &createTime, &existingUser.UserRole)
+	err := UserHandler.db.QueryRow(query, user.Email).Scan(&existingUser.UserID, &existingUser.AddressID, &existingUser.Name, &existingUser.PhoneNumber, &existingUser.Email, &existingUser.Password, &createTime, &existingUser.UserRole)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// If the user does not exist, send an appropriate response message
