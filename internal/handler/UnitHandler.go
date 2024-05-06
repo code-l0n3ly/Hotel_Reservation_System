@@ -76,15 +76,26 @@ func (UnitHandler *UnitHandler) CreateUnit(c *gin.Context) {
 	}
 
 	tx, _ := UnitHandler.db.Begin()
-	addressQuery := `INSERT INTO Address (Country, City, State, Street, PostalCode, AdditionalNumber, MapLocation, Latitude, Longitude) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	addressResult, err := tx.Exec(addressQuery, unit.Address.Country, unit.Address.City, unit.Address.State, unit.Address.Street, unit.Address.PostalCode, unit.Address.AdditionalNumber, unit.Address.MapLocation, unit.Address.Latitude, unit.Address.Longitude)
+	addressQuery := `SELECT AddressID FROM Address WHERE PropertyID = ?`
+	row := tx.QueryRow(addressQuery, unit.PropertyID)
+
+	var address Entities.Address
+	err = row.Scan(&address.AddressID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Failed to create address" + err.Error()})
+		if err == sql.ErrNoRows {
+			c.JSON(http.StatusNotFound, Response{
+				Status:  "error",
+				Message: "Address not found",
+			})
+		} else {
+			c.JSON(http.StatusInternalServerError, Response{
+				Status:  "error",
+				Message: "Failed to retrieve address",
+			})
+		}
 		return
 	}
-	AddressID, _ := addressResult.LastInsertId()
-	unit.AddressID = strconv.FormatInt(AddressID, 10)
-
+	unit.AddressID = address.AddressID
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Failed to create unit"})
 		return
