@@ -2,13 +2,11 @@ package Handlers
 
 import (
 	"database/sql"
-	"encoding/json"
-	"fmt"
 	"net/http"
-	"strconv"
+	"time"
 
 	Entities "GraduationProject.com/m/internal/model"
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 )
 
 type ReviewHandler struct {
@@ -19,29 +17,9 @@ type ReviewHandler struct {
 
 func NewReviewHandler(db *sql.DB) *ReviewHandler {
 	return &ReviewHandler{
-		db:                db,
-		ReviewIdReference: 0,
-		cache:             make(map[string]Entities.Review),
+		db:    db,
+		cache: make(map[string]Entities.Review),
 	}
-}
-
-func (ReviewHandler *ReviewHandler) GenerateUniqueReviewID() string {
-	ReviewHandler.ReviewIdReference++
-	return fmt.Sprintf("%d", ReviewHandler.ReviewIdReference)
-}
-
-func (ReviewHandler *ReviewHandler) SetHighestReviewID() {
-	highestID := int64(0)
-	for _, review := range ReviewHandler.cache {
-		reviewID, err := strconv.ParseInt(review.ReviewID, 10, 64)
-		if err != nil {
-			continue // Skip if the ReviewID is not a valid integer
-		}
-		if reviewID > highestID {
-			highestID = reviewID
-		}
-	}
-	ReviewHandler.ReviewIdReference = highestID
 }
 
 func (ReviewHandler *ReviewHandler) LoadReviews() error {
@@ -52,102 +30,153 @@ func (ReviewHandler *ReviewHandler) LoadReviews() error {
 	defer rows.Close()
 
 	for rows.Next() {
+		var createTime []byte
 		var review Entities.Review
-		if err := rows.Scan(&review.ReviewID, &review.UserID, &review.UnitID, &review.Rating, &review.Comment, &review.CreateTime); err != nil {
+		if err := rows.Scan(&review.ReviewID, &review.UserID, &review.UnitID, &review.Rating, &review.Comment, &createTime); err != nil {
 			return err
 		}
 		//fmt.Println(review)
+		review.CreateTime, _ = time.Parse("2006-01-02 15:04:05", string(createTime))
 		ReviewHandler.cache[review.ReviewID] = review
 	}
-	ReviewHandler.SetHighestReviewID()
 	return rows.Err()
 }
 
-func (ReviewHandler *ReviewHandler) CreateReview(w http.ResponseWriter, r *http.Request) {
+func (ReviewHandler *ReviewHandler) CreateReview(c *gin.Context) {
 	var review Entities.Review
 	ReviewHandler.LoadReviews()
-	ReviewHandler.GenerateUniqueReviewID()
-	err := json.NewDecoder(r.Body).Decode(&review)
+	err := c.BindJSON(&review)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+
+		c.JSON(http.StatusBadRequest, Response{
+			Status:  "success",
+			Message: "Review created successfully",
+			Data:    review,
+		})
 		return
 	}
 
 	err = review.Validate()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, Response{
+			Status:  "error",
+			Message: err.Error(),
+		})
 		return
 	}
 
-	query := `INSERT INTO Review (ReviewID, UserID, UnitID, Rating, Comment, CreateTime) VALUES (?, ?, ?, ?, ?, ?)`
-	_, err = ReviewHandler.db.Exec(query, review.ReviewID, review.UserID, review.UnitID, review.Rating, review.Comment, review.CreateTime)
+	query := `INSERT INTO Review (UserID, UnitID, Rating, Comment, CreateTime) VALUES (?, ?, ?, ?, ?, ?)`
+	_, err = ReviewHandler.db.Exec(query, review.UserID, review.UnitID, review.Rating, review.Comment, review.CreateTime)
 	if err != nil {
-		http.Error(w, "Failed to create review", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, Response{
+			Status:  "error",
+			Message: "Failed to create review",
+		})
 		return
 	}
 	ReviewHandler.LoadReviews()
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(ReviewHandler.cache[review.ReviewID]) // Respond with the created review object
+	c.JSON(http.StatusCreated, ReviewHandler.cache[review.ReviewID]) // Respond with the created review object
 }
 
-func (ReviewHandler *ReviewHandler) GetReview(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	reviewID := params["id"]
+func (ReviewHandler *ReviewHandler) GetReview(c *gin.Context) {
+	reviewID := c.Param("id")
 
 	var review Entities.Review
-	query := `SELECT ReviewID, UserID, UnitID, Rating, Comment, CreateTime FROM Review WHERE ReviewID = ?`
-	err := ReviewHandler.db.QueryRow(query, reviewID).Scan(&review.ReviewID, &review.UserID, &review.UnitID, &review.Rating, &review.Comment, &review.CreateTime)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			http.NotFound(w, r)
-			return
-		}
-		http.Error(w, "Failed to retrieve review", http.StatusInternalServerError)
+
+	// Load the cache
+	ReviewHandler.LoadReviews()
+
+	// Check if the review is in the cache
+	if cachedReview, ok := ReviewHandler.cache[reviewID]; ok {
+		review = cachedReview
+	} else {
+		// If the review is not in the cache, return an error
+		c.JSON(http.StatusNotFound, Response{
+			Status:  "error",
+			Message: "Review not found",
+		})
 		return
 	}
-	ReviewHandler.LoadReviews()
-	json.NewEncoder(w).Encode(review)
+
+	c.JSON(http.StatusOK, review)
 }
 
-func (ReviewHandler *ReviewHandler) UpdateReview(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	reviewID := params["id"]
+func (ReviewHandler *ReviewHandler) UpdateReview(c *gin.Context) {
+	reviewID := c.Param("id")
 	ReviewHandler.LoadReviews()
 	var review Entities.Review
-	err := json.NewDecoder(r.Body).Decode(&review)
+	err := c.BindJSON(&review)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, Response{
+			Status:  "error",
+			Message: err.Error(),
+		})
 		return
 	}
 
 	err = review.Validate()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, Response{
+			Status:  "error",
+			Message: err.Error(),
+		})
 		return
 	}
 
-	query := `UPDATE Review SET UserID = ?, UnitID = ?, Rating = ?, Comment = ?, CreateTime = ? WHERE ReviewID = ?`
-	_, err = ReviewHandler.db.Exec(query, review.UserID, review.UnitID, review.Rating, review.Comment, review.CreateTime, reviewID)
+	query := `UPDATE Review SET `
+	setValues := []interface{}{}
+	if review.UserID != "" {
+		query += `UserID = ?, `
+		setValues = append(setValues, review.UserID)
+	}
+	if review.UnitID != "" {
+		query += `UnitID = ?, `
+		setValues = append(setValues, review.UnitID)
+	}
+	if review.Rating != 0 {
+		query += `Rating = ?, `
+		setValues = append(setValues, review.Rating)
+	}
+	if review.Comment != "" {
+		query += `Comment = ?, `
+		setValues = append(setValues, review.Comment)
+	}
+
+	// Remove the last comma and space
+	query = query[:len(query)-2]
+
+	query += ` WHERE ReviewID = ?`
+	setValues = append(setValues, reviewID)
+
+	_, err = ReviewHandler.db.Exec(query, setValues...)
 	if err != nil {
-		http.Error(w, "Failed to update review", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, Response{
+			Status:  "error",
+			Message: "Failed to update review",
+		})
 		return
 	}
 	ReviewHandler.LoadReviews()
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode("Review updated successfully")
+	c.JSON(http.StatusOK, Response{
+		Status:  "success",
+		Message: "Review updated successfully",
+	})
 }
-
-func (ReviewHandler *ReviewHandler) DeleteReview(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	reviewID := params["id"]
+func (ReviewHandler *ReviewHandler) DeleteReview(c *gin.Context) {
+	reviewID := c.Param("id")
 	ReviewHandler.LoadReviews()
 	query := `DELETE FROM Review WHERE ReviewID = ?`
 	_, err := ReviewHandler.db.Exec(query, reviewID)
 	if err != nil {
-		http.Error(w, "Failed to delete review", http.StatusInternalServerError)
+		c.JSON(http.StatusInternalServerError, Response{
+			Status:  "error",
+			Message: "Failed to delete review",
+		})
 		return
 	}
 	ReviewHandler.LoadReviews()
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode("Review deleted successfully")
+	c.JSON(http.StatusOK, Response{
+		Status:  "success",
+		Message: "Review deleted successfully",
+	})
 }

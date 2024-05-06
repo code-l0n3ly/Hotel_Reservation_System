@@ -53,7 +53,7 @@ func (a *App) Initialize(user, password, address, dbname string) {
 // InitializeRoutes sets up the routes for the application
 func (a *App) initializeRoutes() {
 	Routes.RegisterUserRoutes(a.Router, a.UserHandler)
-	// Routes.RegisterReviewRoutes(a.Router, a.ReviewHandler)
+	Routes.RegisterReviewRoutes(a.Router, a.ReviewHandler)
 	Routes.RegisterUnitRoutes(a.Router, a.UnitHandler)
 	Routes.RegisterBookingRoutes(a.Router, a.BookingHandler)
 	// Routes.RegisterReportRoutes(a.Router, a.ReportHandler)

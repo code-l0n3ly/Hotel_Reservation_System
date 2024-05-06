@@ -1,19 +1,18 @@
 package model
 
 import (
-	"database/sql"
 	"errors"
 	"time"
 )
 
 // Review represents the 'Review' table in your database.
 type Review struct {
-	ReviewID   string         `json:"reviewID"`
-	UserID     string         `json:"userID"`
-	UnitID     string         `json:"unitID"`
-	Rating     int            `json:"rating"`
-	Comment    sql.NullString `json:"comment,omitempty"`
-	CreateTime time.Time      `json:"createTime"`
+	ReviewID   string    `json:"reviewID"`
+	UserID     string    `json:"userID"`
+	UnitID     string    `json:"unitID"`
+	Rating     int       `json:"rating"`
+	Comment    string    `json:"comment,omitempty"`
+	CreateTime time.Time `json:"createTime"`
 }
 
 func (r *Review) Validate() error {
@@ -33,5 +32,5 @@ func (r *Review) Validate() error {
 }
 
 func (r *Review) HasComment() bool {
-	return r.Comment.Valid
+	return r.Comment != ""
 }

@@ -156,5 +156,9 @@ func (BookingHandler *BookingHandler) GetActiveBookings(c *gin.Context) {
 			activeBookings = append(activeBookings, booking)
 		}
 	}
+	if len(activeBookings) == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"status": "error", "message": "No active bookings found"})
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Active bookings retrieved successfully", "data": activeBookings})
 }
