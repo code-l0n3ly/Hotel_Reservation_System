@@ -152,7 +152,7 @@ func (BookingHandler *BookingHandler) GetActiveBookings(c *gin.Context) {
 	BookingHandler.LoadBookings()
 	var activeBookings []Entities.Booking
 	for _, booking := range BookingHandler.cache {
-		if booking.UnitID == unitID && booking.IsActiveBooking() {
+		if booking.UnitID == unitID {
 			activeBookings = append(activeBookings, booking)
 		}
 	}
