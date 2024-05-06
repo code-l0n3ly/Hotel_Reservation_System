@@ -12,5 +12,6 @@ func RegisterBookingRoutes(router *gin.Engine, BookingHandler *handler.BookingHa
 		bookingGroup.GET("/:id", BookingHandler.GetBooking)
 		bookingGroup.PUT("/:id", BookingHandler.UpdateBooking)
 		bookingGroup.DELETE("/:id", BookingHandler.DeleteBooking)
+		bookingGroup.GET("/unit/:id", BookingHandler.GetActiveBookings)
 	}
 }

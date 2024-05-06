@@ -322,3 +322,5 @@ func (UnitHandler *UnitHandler) GetAllOccupiedUnits(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Units retrieved successfully", "data": units})
 }
+
+// function that gets unitid and returns all the active bookings for that unit

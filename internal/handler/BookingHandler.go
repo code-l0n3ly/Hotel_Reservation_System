@@ -26,6 +26,7 @@ func NewBookingHandler(db *sql.DB) *BookingHandler {
 func (BookingHandler *BookingHandler) LoadBookings() error {
 	rows, err := BookingHandler.db.Query(`SELECT BookingID, UnitID, UserID, EndDate, CreateTime, StartDate, Summary FROM Booking`)
 	if err != nil {
+		fmt.Println(err.Error())
 		return err
 	}
 	defer rows.Close()
@@ -143,4 +144,17 @@ func (BookingHandler *BookingHandler) DeleteBooking(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Booking deleted successfully", "data": BookingHandler.cache[bookingID]})
 	BookingHandler.LoadBookings()
+}
+
+// A function that gets unitid and returns all the active bookings for that unit
+func (BookingHandler *BookingHandler) GetActiveBookings(c *gin.Context) {
+	unitID := c.Param("id")
+	BookingHandler.LoadBookings()
+	var activeBookings []Entities.Booking
+	for _, booking := range BookingHandler.cache {
+		if booking.UnitID == unitID && booking.IsActiveBooking() {
+			activeBookings = append(activeBookings, booking)
+		}
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Active bookings retrieved successfully", "data": activeBookings})
 }
