@@ -48,6 +48,17 @@ func (BookingHandler *BookingHandler) LoadBookings() error {
 	return rows.Err()
 }
 
+// Method takes date as an argument and check in the cache if there is an active booking in that date returns true otherwise false
+func (BookingHandler *BookingHandler) CheckActiveBooking(UnitId string, date time.Time) bool {
+	for _, booking := range BookingHandler.cache {
+		if booking.UnitID == UnitId && booking.StartDate.Before(date) && booking.EndDate.After(date) {
+			return true
+		} else {
+			return false
+		}
+	}
+	return false
+}
 func (BookingHandler *BookingHandler) CreateBooking(c *gin.Context) {
 	var booking Entities.Booking
 	BookingHandler.LoadBookings()
@@ -55,6 +66,10 @@ func (BookingHandler *BookingHandler) CreateBooking(c *gin.Context) {
 	err := c.BindJSON(&booking)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": err.Error()})
+		return
+	}
+	if BookingHandler.CheckActiveBooking(booking.UnitID, booking.StartDate) {
+		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "There is an active booking in this date"})
 		return
 	}
 	query := `INSERT INTO Booking (UnitID, UserID, EndDate, StartDate, Summary) VALUES (?, ?, ?, ?, ?)`
