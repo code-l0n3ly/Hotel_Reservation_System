@@ -212,16 +212,33 @@ func (PropertyHandler *PropertyHandler) GetUnitsByPropertyID(c *gin.Context) {
 	propertyID := c.Param("id")
 
 	query := `
-        SELECT 
-            u.UnitID, u.PropertyID, u.Name, u.RentalPrice, u.Description, u.Rating, u.OccupancyStatus, u.StructuralProperties, u.CreateTime,
-            a.AddressID, a.PropertyID, a.UnitID, a.Country, a.City, a.State, a.Street, a.PostalCode, a.AdditionalCode, a.MapLocation, a.Latitude, a.Longitude
-        FROM 
-            Unit u
-        LEFT JOIN 
-            Address a ON u.UnitID = a.UnitID
-        WHERE 
-            u.PropertyID = ?
-    `
+    SELECT 
+        u.UnitID, 
+        u.PropertyID, 
+        u.Name, 
+        u.RentalPrice, 
+        u.Description, 
+        u.Rating, 
+        u.OccupancyStatus, 
+        u.StructuralProperties, 
+        u.CreateTime,
+        a.AddressID, 
+        a.Country, 
+        a.City, 
+        a.State, 
+        a.Street, 
+        a.PostalCode, 
+        a.AdditionalCode, 
+        a.MapLocation, 
+        a.Latitude, 
+        a.Longitude
+    FROM 
+        Unit u
+    LEFT JOIN 
+        Address a ON u.AddressID = a.AddressID
+    WHERE 
+        u.PropertyID = ?
+`
 	rows, err := PropertyHandler.db.Query(query, propertyID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Failed to retrieve units: " + err.Error()})

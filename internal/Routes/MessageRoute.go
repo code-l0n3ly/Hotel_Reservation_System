@@ -6,8 +6,6 @@ import (
 )
 
 func RegisterMessageRoutes(router *gin.Engine, MessageHandler *handler.MessageHandler) {
-	router.POST("/message/create", MessageHandler.CreateMessage)
-	router.GET("/message/:id", MessageHandler.GetMessage)
-	router.PUT("/message/:id", MessageHandler.UpdateMessage)
-	router.DELETE("/message/:id", MessageHandler.DeleteMessage)
+	router.POST("/message/send", MessageHandler.SendMessage)
+	router.GET("/chat/:id", MessageHandler.GetChat)
 }

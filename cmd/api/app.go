@@ -60,7 +60,7 @@ func (a *App) initializeRoutes() {
 	// Routes.RegisterFinancialTransactionRoutes(a.Router, a.FinancialTransactionHandler)
 	// Routes.RegisterMaintenanceTicketRoutes(a.Router, a.MaintenanceTicketHandler)
 	Routes.RegisterPropertyRoutes(a.Router, a.PropertyHandler)
-	// Routes.RegisterMessageRoutes(a.Router, a.MessageHandler)
+	Routes.RegisterMessageRoutes(a.Router, a.MessageHandler)
 }
 
 // Run starts the server on a specified port
