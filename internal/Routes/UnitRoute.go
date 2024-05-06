@@ -15,5 +15,7 @@ func RegisterUnitRoutes(router *gin.Engine, UnitHandler *handler.UnitHandler) {
 		units.DELETE("/:id", UnitHandler.DeleteUnit)
 		units.GET("/Available", UnitHandler.GetAllAvailableUnits)
 		units.GET("/Occupied", UnitHandler.GetAllOccupiedUnits)
+		units.POST("/SearchByName", UnitHandler.SearchUnitsByName)
+		units.POST("/SearchByAddress", UnitHandler.SearchUnitsByAddress)
 	}
 }

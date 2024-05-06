@@ -2,12 +2,12 @@ package Routes
 
 import (
 	handler "GraduationProject.com/m/internal/handler"
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 )
 
-func RegisterMessageRoutes(router *mux.Router, MessageHandler *handler.MessageHandler) {
-	router.HandleFunc("/message/create", MessageHandler.CreateMessage).Methods("POST")
-	router.HandleFunc("/message/{id}", MessageHandler.GetMessage).Methods("GET")
-	router.HandleFunc("/message/{id}", MessageHandler.UpdateMessage).Methods("PUT")
-	router.HandleFunc("/message/{id}", MessageHandler.DeleteMessage).Methods("DELETE")
+func RegisterMessageRoutes(router *gin.Engine, MessageHandler *handler.MessageHandler) {
+	router.POST("/message/create", MessageHandler.CreateMessage)
+	router.GET("/message/:id", MessageHandler.GetMessage)
+	router.PUT("/message/:id", MessageHandler.UpdateMessage)
+	router.DELETE("/message/:id", MessageHandler.DeleteMessage)
 }

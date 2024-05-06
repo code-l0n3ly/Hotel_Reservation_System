@@ -323,4 +323,57 @@ func (UnitHandler *UnitHandler) GetAllOccupiedUnits(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Units retrieved successfully", "data": units})
 }
 
-// function that gets unitid and returns all the active bookings for that unit
+// function that search units by name, let it search if there is a unit with the exact name and then units that contain the name
+func (UnitHandler *UnitHandler) SearchUnitsByName(c *gin.Context) {
+	UnitHandler.LoadUnits()
+	var unit Entities.Unit
+	err := c.BindJSON(&unit)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, Response{
+			Status:  "error",
+			Message: err.Error(),
+		})
+		return
+	}
+	var units []Entities.Unit
+	for _, unitx := range UnitHandler.cache {
+		if unitx.Name == unit.Name {
+			units = append(units, unitx)
+		}
+	}
+	for _, unitx := range UnitHandler.cache {
+		if strings.Contains(unit.Name, unit.Name) {
+			units = append(units, unitx)
+		}
+	}
+	c.JSON(http.StatusOK, Response{
+		Status:  "success",
+		Message: "Units retrieved successfully",
+		Data:    units,
+	})
+}
+
+// function that search units by address, let it search if there is a unit with the exact address and then units that contain the address
+func (UnitHandler *UnitHandler) SearchUnitsByAddress(c *gin.Context) {
+	UnitHandler.LoadUnits()
+	var Address Entities.Address
+	err := c.BindJSON(&Address)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, Response{
+			Status:  "error",
+			Message: err.Error(),
+		})
+		return
+	}
+	var units []Entities.Unit
+	for _, unit := range UnitHandler.cache {
+		if unit.Address.Street == Address.Street || unit.Address.City == Address.City || unit.Address.State == Address.State || unit.Address.Country == Address.Country || unit.Address.PostalCode == Address.PostalCode {
+			units = append(units, unit)
+		}
+	}
+	c.JSON(http.StatusOK, Response{
+		Status:  "success",
+		Message: "Units retrieved successfully",
+		Data:    units,
+	})
+}

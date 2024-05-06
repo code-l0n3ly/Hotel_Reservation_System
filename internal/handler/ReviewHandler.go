@@ -65,7 +65,7 @@ func (ReviewHandler *ReviewHandler) CreateReview(c *gin.Context) {
 		return
 	}
 
-	query := `INSERT INTO Review (UserID, UnitID, Rating, Comment, CreateTime) VALUES (?, ?, ?, ?, ?, ?)`
+	query := `INSERT INTO Review (UserID, UnitID, Rating, Comment, CreateTime) VALUES (?, ?, ?, ?, ?)`
 	_, err = ReviewHandler.db.Exec(query, review.UserID, review.UnitID, review.Rating, review.Comment, review.CreateTime)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, Response{
