@@ -12,36 +12,48 @@ import (
 )
 
 type MessageHandler struct {
-	db                 *sql.DB
-	MessageIdReference int64
-	cache              map[string]Entities.Message // Cache to hold messages in memory
+	db    *sql.DB
+	cache map[string]Entities.Chat // Cache to hold messages in memory
 }
 
 func NewMessageHandler(db *sql.DB) *MessageHandler {
 	return &MessageHandler{
-		db:                 db,
-		MessageIdReference: 0,
-		cache:              make(map[string]Entities.Message),
+		db:    db,
+		cache: make(map[string]Entities.Chat),
 	}
 }
 
 func (handler *MessageHandler) LoadMessages() error {
-	rows, err := handler.db.Query(`SELECT MessageID, Content, CreateTime, ReceiverID, SenderID FROM Message`)
+	rows, err := handler.db.Query(`SELECT ChatID, CreateTime FROM Chat`)
 	if err != nil {
 		return err
 	}
 	defer rows.Close()
-
 	for rows.Next() {
 		var createTime []byte
-		var message Entities.Message
-		if err := rows.Scan(&message.MessageID, &message.Content, &createTime, &message.ReceiverID, &message.SenderID); err != nil {
+		var Chat Entities.Chat
+		if err := rows.Scan(&Chat.ChatID, &createTime); err != nil {
 			return err
 		}
-		message.CreateTime, _ = time.Parse("2006-01-02 15:04:05", string(createTime))
-		handler.cache[message.MessageID] = message
+		Chat.CreateTime, _ = time.Parse("2006-01-02 15:04:05", string(createTime))
+		rows, err := handler.db.Query(`SELECT MessageID, SenderID, Content, CreateTime FROM Message WHERE ChatID = ?`, Chat.ChatID)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var createTime []byte
+			var message Entities.Message
+			if err := rows.Scan(&message.MessageID, &message.Content, &createTime, &message.SenderID); err != nil {
+				return err
+			}
+			message.CreateTime, _ = time.Parse("2006-01-02 15:04:05", string(createTime))
+		}
+		handler.cache[Chat.ChatID] = Chat
 	}
 	return rows.Err()
+
 }
 
 func (handler *MessageHandler) CreateMessage(c *gin.Context) {

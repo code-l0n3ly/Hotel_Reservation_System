@@ -13,16 +13,14 @@ import (
 )
 
 type UnitHandler struct {
-	db              *sql.DB
-	UnitIdReference int64
-	cache           map[string]Entities.Unit // Cache to hold users in memory
+	db    *sql.DB
+	cache map[string]Entities.Unit // Cache to hold users in memory
 }
 
 func NewUnitHandler(db *sql.DB) *UnitHandler {
 	return &UnitHandler{
-		db:              db,
-		UnitIdReference: 0,
-		cache:           make(map[string]Entities.Unit),
+		db:    db,
+		cache: make(map[string]Entities.Unit),
 	}
 }
 
@@ -76,7 +74,7 @@ func (UnitHandler *UnitHandler) CreateUnit(c *gin.Context) {
 	}
 
 	tx, _ := UnitHandler.db.Begin()
-	addressQuery := `SELECT AddressID FROM Address WHERE PropertyID = ?`
+	addressQuery := `SELECT AddressID FROM Property WHERE PropertyID = ?`
 	row := tx.QueryRow(addressQuery, unit.PropertyID)
 
 	var address Entities.Address
@@ -96,18 +94,10 @@ func (UnitHandler *UnitHandler) CreateUnit(c *gin.Context) {
 		return
 	}
 	unit.AddressID = address.AddressID
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Failed to create unit"})
-		return
-	}
 	query := `INSERT INTO Unit (PropertyID, AddressID, Name, RentalPrice, Description, Rating, OccupancyStatus, StructuralProperties) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
 	result, err := tx.Exec(query, unit.PropertyID, unit.AddressID, unit.Name, unit.RentalPrice, unit.Description, unit.Rating, unit.OccupancyStatus, unit.StructuralProperties)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Failed to create unit" + err.Error()})
-		return
-	}
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Failed to retrieve unit ID" + err.Error()})
 		return
 	}
 
