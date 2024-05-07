@@ -264,6 +264,7 @@ func (UserHandler *UserHandler) UpdateUserHandler(c *gin.Context) {
 	response := Response{
 		Status:  "success",
 		Message: "User and address updated successfully",
+		Data:    UserHandler.cache[userID],
 	}
 	c.JSON(http.StatusOK, response)
 }
