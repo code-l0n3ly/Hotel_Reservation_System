@@ -228,7 +228,7 @@ func (PropertyHandler *PropertyHandler) GetUnitsByPropertyID(c *gin.Context) {
         a.State, 
         a.Street, 
         a.PostalCode, 
-        a.AdditionalCode, 
+        a.AdditionalnNumber, 
         a.MapLocation, 
         a.Latitude, 
         a.Longitude
