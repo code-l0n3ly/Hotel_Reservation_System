@@ -241,21 +241,22 @@ func (UserHandler *UserHandler) UpdateUserHandler(c *gin.Context) {
 		addressQuery += "Longitude = ?, "
 		params = append(params, newUser.Address.Longitude)
 	}
+	if len(params) > 0 {
+		// Remove the trailing comma and space
+		addressQuery = addressQuery[:len(addressQuery)-2]
 
-	// Remove the trailing comma and space
-	addressQuery = addressQuery[:len(addressQuery)-2]
+		addressQuery += " WHERE AddressID = ?"
+		params = append(params, oldUser.AddressID)
 
-	addressQuery += " WHERE AddressID = ?"
-	params = append(params, oldUser.AddressID)
-
-	_, err = UserHandler.db.Exec(addressQuery, params...)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, Response{
-			Status:  "error",
-			Message: "Failed to update address",
-			Data:    err.Error(),
-		})
-		return
+		_, err = UserHandler.db.Exec(addressQuery, params...)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, Response{
+				Status:  "error",
+				Message: "Failed to update address",
+				Data:    err.Error(),
+			})
+			return
+		}
 	}
 
 	UserHandler.LoadUsersIntoCache()
