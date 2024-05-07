@@ -26,14 +26,14 @@ func NewUnitHandler(db *sql.DB) *UnitHandler {
 
 func (UnitHandler *UnitHandler) LoadUnits() error {
 	query := `
-        SELECT 
-            u.UnitID, u.PropertyID, u.AddressID, u.Name, u.RentalPrice, u.Description, u.Rating, u.OccupancyStatus, u.StructuralProperties, u.CreateTime,
-            a.AddressID, a.Country, a.City, a.State, a.Street, a.PostalCode, a.AdditionalNumber, a.MapLocation, a.Latitude, a.Longitude
-        FROM 
-            Unit u
-        LEFT JOIN 
-            Address a ON u.AddressID = a.AddressID
-    `
+    SELECT 
+        u.UnitID, u.PropertyID, u.AddressID, u.Name, u.RentalPrice, u.Description, u.Rating, u.OccupancyStatus, u.StructuralProperties, u.CreateTime,
+        a.AddressID, a.Country, a.City, a.State, a.Street, a.PostalCode, a.AdditionalNumber, a.MapLocation, a.Latitude, a.Longitude
+    FROM 
+        Unit u
+    LEFT JOIN 
+        Address a ON u.AddressID = a.AddressID
+`
 	rows, err := UnitHandler.db.Query(query)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -41,17 +41,37 @@ func (UnitHandler *UnitHandler) LoadUnits() error {
 	}
 	defer rows.Close()
 
+	ownerQuery, err := UnitHandler.db.Prepare(`SELECT p.OwnerID, u.Name FROM Property p JOIN User u ON p.OwnerID = u.UserID WHERE p.PropertyID = ?`)
+	if err != nil {
+		return err
+	}
+	defer ownerQuery.Close()
+
 	for rows.Next() {
 		var createTime []byte
 		var unit Entities.Unit
 		var address Entities.Address
 		if err := rows.Scan(&unit.UnitID, &unit.PropertyID, &unit.AddressID, &unit.Name, &unit.RentalPrice, &unit.Description, &unit.Rating, &unit.OccupancyStatus, &unit.StructuralProperties, &createTime, &address.AddressID, &address.Country, &address.City, &address.State, &address.Street, &address.PostalCode, &address.AdditionalNumber, &address.MapLocation, &address.Latitude, &address.Longitude); err != nil {
 			fmt.Println(err.Error())
+			continue
 		}
-		unit.CreateTime, _ = time.Parse("2006-01-02 15:04:05", string(createTime))
+		unit.CreateTime, err = time.Parse("2006-01-02 15:04:05", string(createTime))
+		if err != nil {
+			fmt.Println(err.Error())
+			continue
+		}
+
+		// Get OwnerID and OwnerName
+		var OwnerID, OwnerName string
+		err = ownerQuery.QueryRow(unit.PropertyID).Scan(&OwnerID, &OwnerName)
+		if err != nil {
+			fmt.Println(err.Error())
+			continue
+		}
 
 		// Save the grouped object to the cache
 		unit.Address = address
+		unit.OwnerName = OwnerName
 		fmt.Println(unit)
 		UnitHandler.cache[unit.UnitID] = unit
 	}
