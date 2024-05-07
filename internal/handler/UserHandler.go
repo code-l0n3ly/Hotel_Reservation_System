@@ -250,7 +250,11 @@ func (UserHandler *UserHandler) UpdateUserHandler(c *gin.Context) {
 
 	_, err = UserHandler.db.Exec(addressQuery, params...)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update address"})
+		c.JSON(http.StatusInternalServerError, Response{
+			Status:  "error",
+			Message: "Failed to update address",
+			Data:    err.Error(),
+		})
 		return
 	}
 
