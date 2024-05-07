@@ -6,7 +6,7 @@ import (
 )
 
 func RegisterReviewRoutes(router *gin.Engine, ReviewHandler *handler.ReviewHandler) {
-	router.POST("/reviews", ReviewHandler.CreateReview)
+	router.POST("/reviews/create", ReviewHandler.CreateReview)
 	router.GET("/reviews/:id", ReviewHandler.GetReview)
 	router.PUT("/reviews/:id", ReviewHandler.UpdateReview)
 	router.DELETE("/reviews/:id", ReviewHandler.DeleteReview)
