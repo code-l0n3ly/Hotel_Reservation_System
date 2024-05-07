@@ -343,7 +343,7 @@ func (UnitHandler *UnitHandler) SearchUnitsByName(c *gin.Context) {
 		}
 	}
 	for _, unitx := range UnitHandler.cache {
-		if strings.Contains(unit.Name, unit.Name) {
+		if strings.Contains(unitx.Name, unit.Name) {
 			units = append(units, unitx)
 		}
 	}
@@ -368,7 +368,7 @@ func (UnitHandler *UnitHandler) SearchUnitsByAddress(c *gin.Context) {
 	}
 	var units []Entities.Unit
 	for _, unit := range UnitHandler.cache {
-		if unit.Address.Street == Address.Street || unit.Address.City == Address.City || unit.Address.State == Address.State || unit.Address.Country == Address.Country || unit.Address.PostalCode == Address.PostalCode {
+		if unit.Address.PostalCode == Address.PostalCode || unit.Address.Country == Address.Country || unit.Address.State == Address.State || unit.Address.City == Address.City || unit.Address.Street == Address.Street {
 			units = append(units, unit)
 		}
 	}
