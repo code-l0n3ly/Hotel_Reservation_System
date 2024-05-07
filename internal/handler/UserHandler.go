@@ -245,8 +245,8 @@ func (UserHandler *UserHandler) UpdateUserHandler(c *gin.Context) {
 	// Remove the trailing comma and space
 	addressQuery = addressQuery[:len(addressQuery)-2]
 
-	addressQuery += " WHERE UserID = ?"
-	params = append(params, userID)
+	addressQuery += " WHERE AddressID = ?"
+	params = append(params, oldUser.AddressID)
 
 	_, err = UserHandler.db.Exec(addressQuery, params...)
 	if err != nil {
