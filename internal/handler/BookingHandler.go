@@ -52,11 +52,10 @@ func (BookingHandler *BookingHandler) LoadBookings() error {
 // Method takes date as an argument and check in the cache if there is an active booking in that date returns true otherwise false
 func (BookingHandler *BookingHandler) CheckActiveBooking(UnitId string, date time.Time) bool {
 	for _, booking := range BookingHandler.cache {
-		if (booking.UnitID == UnitId) && (booking.StartDate.Before(date) || booking.EndDate.After(date)) || (booking.StartDate.Equal(date) || booking.EndDate.Equal(date)) {
+		if booking.UnitID == UnitId && ((booking.StartDate.Before(date) || booking.StartDate.Equal(date)) && (booking.EndDate.After(date) || booking.EndDate.Equal(date))) {
 			return true
-		} else {
-			return false
 		}
+		return false
 	}
 	return false
 }
