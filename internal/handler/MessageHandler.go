@@ -65,7 +65,7 @@ func (handler *MessageHandler) GetChatID(senderID string, receiverID string) str
 		}
 	}
 	//Create a new chat
-	query := `INSERT INTO Chat (SenderID, ReceiverID) VALUES ( ?, ?, ?)`
+	query := `INSERT INTO Chat (SenderID, ReceiverID) VALUES (?, ?)`
 	_, err := handler.db.Exec(query, senderID, receiverID)
 	if err != nil {
 		return ""
