@@ -180,3 +180,15 @@ func (ReviewHandler *ReviewHandler) DeleteReview(c *gin.Context) {
 		Message: "Review deleted successfully",
 	})
 }
+
+func (ReviewHandler *ReviewHandler) GetReviewsByUnitID(c *gin.Context) {
+	unitID := c.Param("id")
+	ReviewHandler.LoadReviews()
+	var reviews []Entities.Review
+	for _, review := range ReviewHandler.cache {
+		if review.UnitID == unitID {
+			reviews = append(reviews, review)
+		}
+	}
+	c.JSON(http.StatusOK, reviews)
+}
