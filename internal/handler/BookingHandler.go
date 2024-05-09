@@ -161,3 +161,20 @@ func (BookingHandler *BookingHandler) GetActiveBookings(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Active bookings retrieved successfully", "data": activeBookings})
 }
+
+// GET all the bookings for a user
+func (BookingHandler *BookingHandler) GetBookingsByUserID(c *gin.Context) {
+	userID := c.Param("id")
+	BookingHandler.LoadBookings()
+	var userBookings []Entities.Booking
+	for _, booking := range BookingHandler.cache {
+		if booking.UserID == userID {
+			userBookings = append(userBookings, booking)
+		}
+	}
+	if len(userBookings) == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"status": "error", "message": "No bookings found for this user"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Bookings retrieved successfully", "data": userBookings})
+}
