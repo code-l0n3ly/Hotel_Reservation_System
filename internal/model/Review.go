@@ -10,15 +10,13 @@ type Review struct {
 	ReviewID   string    `json:"reviewID"`
 	UserID     string    `json:"userID"`
 	UnitID     string    `json:"unitID"`
+	Review     string    `json:"review"`
 	Rating     int       `json:"rating"`
 	Comment    string    `json:"comment,omitempty"`
 	CreateTime time.Time `json:"createTime"`
 }
 
 func (r *Review) Validate() error {
-	if r.ReviewID == "" {
-		return errors.New("ReviewID is required")
-	}
 	if r.UserID == "" {
 		return errors.New("UserID is required")
 	}

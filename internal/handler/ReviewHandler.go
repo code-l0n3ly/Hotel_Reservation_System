@@ -23,7 +23,7 @@ func NewReviewHandler(db *sql.DB) *ReviewHandler {
 }
 
 func (ReviewHandler *ReviewHandler) LoadReviews() error {
-	rows, err := ReviewHandler.db.Query(`SELECT ReviewID, UserID, UnitID, Rating, Comment, CreateTime FROM Review`)
+	rows, err := ReviewHandler.db.Query(`SELECT ReviewID, UserID, UnitID, Review, Rating, Comment, CreateTime FROM Review`)
 	if err != nil {
 		return err
 	}
@@ -32,7 +32,7 @@ func (ReviewHandler *ReviewHandler) LoadReviews() error {
 	for rows.Next() {
 		var createTime []byte
 		var review Entities.Review
-		if err := rows.Scan(&review.ReviewID, &review.UserID, &review.UnitID, &review.Rating, &review.Comment, &createTime); err != nil {
+		if err := rows.Scan(&review.ReviewID, &review.UserID, &review.UnitID, &review.Review, &review.Rating, &review.Comment, &createTime); err != nil {
 			return err
 		}
 		//fmt.Println(review)
@@ -65,8 +65,8 @@ func (ReviewHandler *ReviewHandler) CreateReview(c *gin.Context) {
 		return
 	}
 
-	query := `INSERT INTO Review (UserID, UnitID, Rating, Comment) VALUES (?, ?, ?, ?)`
-	_, err = ReviewHandler.db.Exec(query, review.UserID, review.UnitID, review.Rating, review.Comment)
+	query := `INSERT INTO Review (UserID, UnitID, Review, Rating, Comment) VALUES (?, ?, ?, ?, ?)`
+	_, err = ReviewHandler.db.Exec(query, review.UserID, review.UnitID, review.Review, review.Rating, review.Comment)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, Response{
 			Status:  "error",
