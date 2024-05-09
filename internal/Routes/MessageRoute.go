@@ -7,5 +7,6 @@ import (
 
 func RegisterMessageRoutes(router *gin.Engine, MessageHandler *handler.MessageHandler) {
 	router.POST("/message/send", MessageHandler.SendMessage)
-	router.GET("/chat/:id", MessageHandler.GetChat)
+	//router.GET("/chat/:id", MessageHandler.GetChat)
+	router.GET("/chat/:id", MessageHandler.GetChatByID)
 }

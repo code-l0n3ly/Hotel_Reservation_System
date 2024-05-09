@@ -146,3 +146,22 @@ func (handler *MessageHandler) GetChat(c *gin.Context) {
 		Data:    handler.cache[chatID],
 	})
 }
+
+// Get chat by Chat ID
+func (handler *MessageHandler) GetChatByID(c *gin.Context) {
+	chatID := c.Param("id")
+	handler.LoadMessages()
+	chat, exists := handler.cache[chatID]
+	if !exists {
+		c.JSON(http.StatusNotFound, Response{
+			Status:  "error",
+			Message: "Chat not found",
+		})
+		return
+	}
+	c.JSON(http.StatusOK, Response{
+		Status:  "success",
+		Message: "Chat retrieved successfully",
+		Data:    chat,
+	})
+}
