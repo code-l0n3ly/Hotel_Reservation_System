@@ -358,12 +358,12 @@ func (UnitHandler *UnitHandler) SearchUnitsByName(c *gin.Context) {
 	}
 	var units []Entities.Unit
 	for _, unitx := range UnitHandler.cache {
-		if unitx.Name == unit.Name {
+		if strings.EqualFold(unitx.Name, unit.Name) {
 			units = append(units, unitx)
 		}
 	}
 	for _, unitx := range UnitHandler.cache {
-		if strings.Contains(unitx.Name, unit.Name) {
+		if strings.Contains(strings.ToLower(unitx.Name), strings.ToLower(unit.Name)) {
 			units = append(units, unitx)
 		}
 	}
@@ -374,7 +374,6 @@ func (UnitHandler *UnitHandler) SearchUnitsByName(c *gin.Context) {
 	})
 }
 
-// function that search units by address, let it search if there is a unit with the exact address and then units that contain the address
 func (UnitHandler *UnitHandler) SearchUnitsByAddress(c *gin.Context) {
 	UnitHandler.LoadUnits()
 	var Address Entities.Address
@@ -388,7 +387,7 @@ func (UnitHandler *UnitHandler) SearchUnitsByAddress(c *gin.Context) {
 	}
 	var units []Entities.Unit
 	for _, unit := range UnitHandler.cache {
-		if unit.Address.PostalCode == Address.PostalCode || unit.Address.Country == Address.Country || unit.Address.State == Address.State || unit.Address.City == Address.City || unit.Address.Street == Address.Street {
+		if strings.EqualFold(unit.Address.PostalCode, Address.PostalCode) || strings.EqualFold(unit.Address.Country, Address.Country) || strings.EqualFold(unit.Address.State, Address.State) || strings.EqualFold(unit.Address.City, Address.City) || strings.EqualFold(unit.Address.Street, Address.Street) {
 			units = append(units, unit)
 		}
 	}
