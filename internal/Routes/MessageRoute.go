@@ -9,4 +9,5 @@ func RegisterMessageRoutes(router *gin.Engine, MessageHandler *handler.MessageHa
 	router.POST("/message/send", MessageHandler.SendMessage)
 	//router.GET("/chat/:id", MessageHandler.GetChat)
 	router.GET("/chat/:id", MessageHandler.GetChatByID)
+	router.GET("/user/chat/:id", MessageHandler.GetChatBySenderID)
 }

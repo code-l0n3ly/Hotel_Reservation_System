@@ -165,3 +165,20 @@ func (handler *MessageHandler) GetChatByID(c *gin.Context) {
 		Data:    chat,
 	})
 }
+
+// Get chat by sender ID
+func (handler *MessageHandler) GetChatBySenderID(c *gin.Context) {
+	senderID := c.Param("id")
+	handler.LoadMessages()
+	var chats []Entities.Chat
+	for _, chat := range handler.cache {
+		if chat.SenderID == senderID {
+			chats = append(chats, chat)
+		}
+	}
+	c.JSON(http.StatusOK, Response{
+		Status:  "success",
+		Message: "Chats retrieved successfully",
+		Data:    chats,
+	})
+}
