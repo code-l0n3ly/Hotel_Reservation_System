@@ -175,16 +175,7 @@ func (UnitHandler *UnitHandler) UpdateUnit(c *gin.Context) {
 	}
 
 	err := c.BindJSON(&NewInfoUnit)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": err.Error()})
-		return
-	}
-
-	errValid := NewInfoUnit.Validate()
-	if errValid != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": errValid})
-		return
-	}
+	fmt.Println(NewInfoUnit)
 
 	// Prepare dynamic SQL for unit update
 	updateUnitQuery := "UPDATE Unit SET "
@@ -252,58 +243,59 @@ func (UnitHandler *UnitHandler) UpdateUnit(c *gin.Context) {
 			}
 		}
 	}
+	if NewInfoUnit.Address != (Entities.Address{}) {
+		// Update the address related to the unit
+		addressQuery := "UPDATE Address SET "
+		params := []interface{}{}
 
-	// Update the address related to the unit
-	addressQuery := "UPDATE Address SET "
-	params := []interface{}{}
+		if NewInfoUnit.Address.Country != "" {
+			addressQuery += "Country = ?, "
+			params = append(params, NewInfoUnit.Address.Country)
+		}
+		if NewInfoUnit.Address.City != "" {
+			addressQuery += "City = ?, "
+			params = append(params, NewInfoUnit.Address.City)
+		}
+		if NewInfoUnit.Address.State != "" {
+			addressQuery += "State = ?, "
+			params = append(params, NewInfoUnit.Address.State)
+		}
+		if NewInfoUnit.Address.Street != "" {
+			addressQuery += "Street = ?, "
+			params = append(params, NewInfoUnit.Address.Street)
+		}
+		if NewInfoUnit.Address.PostalCode != "" {
+			addressQuery += "PostalCode = ?, "
+			params = append(params, NewInfoUnit.Address.PostalCode)
+		}
+		if NewInfoUnit.Address.AdditionalNumber != "" {
+			addressQuery += "AdditionalNumber = ?, "
+			params = append(params, NewInfoUnit.Address.AdditionalNumber)
+		}
+		if NewInfoUnit.Address.MapLocation != "" {
+			addressQuery += "MapLocation = ?, "
+			params = append(params, NewInfoUnit.Address.MapLocation)
+		}
+		if NewInfoUnit.Address.Latitude != "" {
+			addressQuery += "Latitude = ?, "
+			params = append(params, NewInfoUnit.Address.Latitude)
+		}
+		if NewInfoUnit.Address.Longitude != "" {
+			addressQuery += "Longitude = ?, "
+			params = append(params, NewInfoUnit.Address.Longitude)
+		}
 
-	if NewInfoUnit.Address.Country != "" {
-		addressQuery += "Country = ?, "
-		params = append(params, NewInfoUnit.Address.Country)
-	}
-	if NewInfoUnit.Address.City != "" {
-		addressQuery += "City = ?, "
-		params = append(params, NewInfoUnit.Address.City)
-	}
-	if NewInfoUnit.Address.State != "" {
-		addressQuery += "State = ?, "
-		params = append(params, NewInfoUnit.Address.State)
-	}
-	if NewInfoUnit.Address.Street != "" {
-		addressQuery += "Street = ?, "
-		params = append(params, NewInfoUnit.Address.Street)
-	}
-	if NewInfoUnit.Address.PostalCode != "" {
-		addressQuery += "PostalCode = ?, "
-		params = append(params, NewInfoUnit.Address.PostalCode)
-	}
-	if NewInfoUnit.Address.AdditionalNumber != "" {
-		addressQuery += "AdditionalNumber = ?, "
-		params = append(params, NewInfoUnit.Address.AdditionalNumber)
-	}
-	if NewInfoUnit.Address.MapLocation != "" {
-		addressQuery += "MapLocation = ?, "
-		params = append(params, NewInfoUnit.Address.MapLocation)
-	}
-	if NewInfoUnit.Address.Latitude != "" {
-		addressQuery += "Latitude = ?, "
-		params = append(params, NewInfoUnit.Address.Latitude)
-	}
-	if NewInfoUnit.Address.Longitude != "" {
-		addressQuery += "Longitude = ?, "
-		params = append(params, NewInfoUnit.Address.Longitude)
-	}
+		// Remove the trailing comma and space
+		addressQuery = addressQuery[:len(addressQuery)-2]
 
-	// Remove the trailing comma and space
-	addressQuery = addressQuery[:len(addressQuery)-2]
+		addressQuery += " WHERE AddressID = ?"
+		params = append(params, NewInfoUnit.AddressID)
 
-	addressQuery += " WHERE AddressID = ?"
-	params = append(params, NewInfoUnit.AddressID)
-
-	_, err = UnitHandler.db.Exec(addressQuery, params...)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update address"})
-		return
+		_, err = UnitHandler.db.Exec(addressQuery, params...)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update address"})
+			return
+		}
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Unit updated successfully", "Data": OldInfoUnit})
 }
