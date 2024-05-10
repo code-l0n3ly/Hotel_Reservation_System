@@ -104,7 +104,7 @@ func (PropertyHandler *PropertyHandler) CreateProperty(c *gin.Context) {
 
 func (PropertyHandler *PropertyHandler) UpdateOrInsertProof(c *gin.Context) {
 	// Get the PropertyID from the URL parameters
-	PropertyID := c.Param("propertyID")
+	PropertyID := c.Param("id")
 
 	// Get the Proof from the request body
 	Proof, err := c.GetRawData()
