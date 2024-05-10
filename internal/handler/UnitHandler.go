@@ -243,8 +243,7 @@ func (UnitHandler *UnitHandler) UpdateUnit(c *gin.Context) {
 		return
 	}
 
-	err := c.BindJSON(&NewInfoUnit)
-	fmt.Println(NewInfoUnit)
+	_ = c.BindJSON(&NewInfoUnit)
 
 	// Prepare dynamic SQL for unit update
 	updateUnitQuery := "UPDATE Unit SET "
@@ -285,7 +284,7 @@ func (UnitHandler *UnitHandler) UpdateUnit(c *gin.Context) {
 	updateUnitQuery += strings.Join(fields, ", ") + " WHERE UnitID = ?"
 	updateUnitParams = append(updateUnitParams, OldInfoUnit.UnitID)
 
-	_, err = UnitHandler.db.Exec(updateUnitQuery, updateUnitParams...)
+	_, err := UnitHandler.db.Exec(updateUnitQuery, updateUnitParams...)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Failed to update unit" + err.Error()})
 		return
