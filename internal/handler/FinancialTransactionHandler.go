@@ -2,138 +2,140 @@ package Handlers
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	Entities "GraduationProject.com/m/internal/model"
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 )
 
 type FinancialTransactionHandler struct {
-	db                     *sql.DB
-	TransactionIdReference int64
-	cache                  map[string]Entities.FinancialTransaction // Cache to hold transactions in memory
+	db    *sql.DB
+	cache map[string]Entities.FinancialTransaction // Cache to hold transactions in memory
 }
 
 func NewFinancialTransactionHandler(db *sql.DB) *FinancialTransactionHandler {
 	return &FinancialTransactionHandler{
-		db:                     db,
-		TransactionIdReference: 0,
-		cache:                  make(map[string]Entities.FinancialTransaction),
+		db:    db,
+		cache: make(map[string]Entities.FinancialTransaction),
 	}
-}
-
-func (handler *FinancialTransactionHandler) GenerateUniqueTransactionID() string {
-	handler.TransactionIdReference++
-	return fmt.Sprintf("%d", handler.TransactionIdReference)
-}
-
-func (handler *FinancialTransactionHandler) SetHighestTransactionID() {
-	highestID := int64(0)
-	for _, transaction := range handler.cache {
-		transactionID, err := strconv.ParseInt(transaction.TransactionID, 10, 64)
-		if err != nil {
-			continue // Skip if the TransactionID is not a valid integer
-		}
-		if transactionID > highestID {
-			highestID = transactionID
-		}
-	}
-	handler.TransactionIdReference = highestID
 }
 
 func (handler *FinancialTransactionHandler) LoadTransactions() error {
-	rows, err := handler.db.Query(`SELECT TransactionID, UserID, UnitID, PaymentMethod, Amount, CreateTime FROM FinancialTransaction`)
+	rows, err := handler.db.Query(`SELECT TransactionID, UserID, BookingID, PaymentMethod, Amount, CreateTime FROM FinancialTransaction`)
 	if err != nil {
+		fmt.Println(err.Error())
 		return err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
 		var transaction Entities.FinancialTransaction
-		if err := rows.Scan(&transaction.TransactionID, &transaction.UserID, &transaction.UnitID, &transaction.PaymentMethod, &transaction.Amount, &transaction.CreateTime); err != nil {
+		var createTime []byte
+		if err := rows.Scan(&transaction.TransactionID, &transaction.UserID, &transaction.BookingID, &transaction.PaymentMethod, &transaction.Amount, &createTime); err != nil {
+			fmt.Println(err.Error())
 			return err
 		}
+		transaction.CreateTime, _ = time.Parse("2006-01-02 15:04:05", string(createTime))
 		handler.cache[transaction.TransactionID] = transaction
 	}
-	handler.SetHighestTransactionID()
 	return rows.Err()
 }
 
-func (handler *FinancialTransactionHandler) CreateTransaction(w http.ResponseWriter, r *http.Request) {
+func (handler *FinancialTransactionHandler) CreateTransaction(c *gin.Context) {
 	var transaction Entities.FinancialTransaction
-	err := json.NewDecoder(r.Body).Decode(&transaction)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
 	handler.LoadTransactions()
 
-	query := `INSERT INTO FinancialTransaction (TransactionID, UserID, UnitID, PaymentMethod, Amount, CreateTime) VALUES (?, ?, ?, ?, ?, ?)`
-	_, err = handler.db.Exec(query, transaction.TransactionID, transaction.UserID, transaction.UnitID, transaction.PaymentMethod, transaction.Amount, transaction.CreateTime)
+	err := c.BindJSON(&transaction)
 	if err != nil {
-		http.Error(w, "Failed to create transaction", http.StatusInternalServerError)
+		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": err.Error()})
 		return
 	}
+	query := `INSERT INTO FinancialTransaction (UserID, BookingID, PaymentMethod, Amount) VALUES (?, ?, ?, ?)`
+	result, err := handler.db.Exec(query, transaction.UserID, transaction.BookingID, transaction.PaymentMethod, transaction.Amount)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Failed to create transaction" + err.Error()})
+		return
+	}
+	id, _ := result.LastInsertId()
+	transaction.TransactionID = strconv.FormatInt(id, 10)
 	handler.LoadTransactions()
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(handler.cache[transaction.TransactionID]) // Respond with the created transaction object
+	c.JSON(http.StatusCreated, gin.H{"status": "success", "message": "Transaction created successfully", "data": handler.cache[transaction.TransactionID]})
 }
 
-func (handler *FinancialTransactionHandler) GetTransaction(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	transactionID := params["id"]
+func (handler *FinancialTransactionHandler) GetTransaction(c *gin.Context) {
+	transactionID := c.Param("id")
+	handler.LoadTransactions()
 
-	var transaction Entities.FinancialTransaction
-	query := `SELECT TransactionID, UserID, UnitID, PaymentMethod, Amount, CreateTime FROM FinancialTransaction WHERE TransactionID = ?`
-	err := handler.db.QueryRow(query, transactionID).Scan(&transaction.TransactionID, &transaction.UserID, &transaction.UnitID, &transaction.PaymentMethod, &transaction.Amount, &transaction.CreateTime)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			http.NotFound(w, r)
-			return
-		}
-		http.Error(w, "Failed to retrieve transaction", http.StatusInternalServerError)
+	transaction, exists := handler.cache[transactionID]
+	if !exists {
+		c.JSON(http.StatusNotFound, gin.H{"status": "error", "message": "Not found"})
 		return
 	}
 
-	json.NewEncoder(w).Encode(transaction)
+	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Transaction retrieved successfully", "data": transaction})
 }
 
-func (handler *FinancialTransactionHandler) UpdateTransaction(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	transactionID := params["id"]
+func (handler *FinancialTransactionHandler) UpdateTransaction(c *gin.Context) {
+	transactionID := c.Param("id")
 	handler.LoadTransactions()
-	var transaction Entities.FinancialTransaction
-	err := json.NewDecoder(r.Body).Decode(&transaction)
+
+	var newInfoTransaction Entities.FinancialTransaction
+	oldInfoTransaction := handler.cache[transactionID]
+
+	err := c.BindJSON(&newInfoTransaction)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": err.Error()})
 		return
 	}
 
-	query := `UPDATE FinancialTransaction SET UserID = ?, UnitID = ?, PaymentMethod = ?, Amount = ?, CreateTime = ? WHERE TransactionID = ?`
-	_, err = handler.db.Exec(query, transaction.UserID, transaction.UnitID, transaction.PaymentMethod, transaction.Amount, transaction.CreateTime, transactionID)
+	if newInfoTransaction.PaymentMethod != "" {
+		oldInfoTransaction.PaymentMethod = newInfoTransaction.PaymentMethod
+	}
+	if newInfoTransaction.Amount != 0 {
+		oldInfoTransaction.Amount = newInfoTransaction.Amount
+	}
+
+	query := `UPDATE FinancialTransaction SET PaymentMethod = ?, Amount = ? WHERE TransactionID = ?`
+	_, err = handler.db.Exec(query, oldInfoTransaction.PaymentMethod, oldInfoTransaction.Amount, oldInfoTransaction.TransactionID)
 	if err != nil {
-		http.Error(w, "Failed to update transaction", http.StatusInternalServerError)
+		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Failed to update transaction" + err.Error()})
 		return
 	}
-	handler.LoadTransactions()
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode("Transaction updated successfully")
+
+	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Transaction updated successfully", "Data": oldInfoTransaction})
 }
 
-func (handler *FinancialTransactionHandler) DeleteTransaction(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	transactionID := params["id"]
+func (handler *FinancialTransactionHandler) DeleteTransaction(c *gin.Context) {
+	transactionID := c.Param("id")
 	handler.LoadTransactions()
+
 	query := `DELETE FROM FinancialTransaction WHERE TransactionID = ?`
 	_, err := handler.db.Exec(query, transactionID)
 	if err != nil {
-		http.Error(w, "Failed to delete transaction", http.StatusInternalServerError)
+		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Failed to delete transaction" + err.Error()})
 		return
 	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Transaction deleted successfully", "data": handler.cache[transactionID]})
 	handler.LoadTransactions()
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode("Transaction deleted successfully")
+}
+
+// GET all the transactions for a user
+func (handler *FinancialTransactionHandler) GetTransactionsByUserID(c *gin.Context) {
+	userID := c.Param("id")
+	handler.LoadTransactions()
+	var userTransactions []Entities.FinancialTransaction
+	for _, transaction := range handler.cache {
+		if transaction.UserID == userID {
+			userTransactions = append(userTransactions, transaction)
+		}
+	}
+	if len(userTransactions) == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"status": "error", "message": "No transactions found for this user"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Transactions retrieved successfully", "data": userTransactions})
 }

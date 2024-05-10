@@ -9,7 +9,7 @@ import (
 type FinancialTransaction struct {
 	TransactionID string    `json:"transactionID"`
 	UserID        string    `json:"userID"`
-	UnitID        string    `json:"unitID"`
+	BookingID     string    `json:"BookingID"`
 	PaymentMethod string    `json:"paymentMethod"`
 	Amount        int       `json:"amount"`
 	CreateTime    time.Time `json:"createTime"`
@@ -22,7 +22,7 @@ func (f *FinancialTransaction) Validate() error {
 	if f.UserID == "" {
 		return errors.New("UserID is required")
 	}
-	if f.UnitID == "" {
+	if f.BookingID == "" {
 		return errors.New("UnitID is required")
 	}
 	if f.PaymentMethod == "" {

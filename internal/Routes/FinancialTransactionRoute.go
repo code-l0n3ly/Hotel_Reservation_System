@@ -2,12 +2,12 @@ package Routes
 
 import (
 	handler "GraduationProject.com/m/internal/handler"
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 )
 
-func RegisterFinancialTransactionRoutes(router *mux.Router, FinancialTransactionHandler *handler.FinancialTransactionHandler) {
-	router.HandleFunc("/financialTransaction/create", FinancialTransactionHandler.CreateTransaction).Methods("POST")
-	router.HandleFunc("/financialTransaction/{id}", FinancialTransactionHandler.GetTransaction).Methods("GET")
-	router.HandleFunc("/financialTransaction/{id}", FinancialTransactionHandler.UpdateTransaction).Methods("PUT")
-	router.HandleFunc("/financialTransaction/{id}", FinancialTransactionHandler.DeleteTransaction).Methods("DELETE")
+func RegisterFinancialTransactionRoutes(router *gin.Engine, FinancialTransactionHandler *handler.FinancialTransactionHandler) {
+	router.POST("/financialTransaction/create", FinancialTransactionHandler.CreateTransaction)
+	router.GET("/financialTransaction/:id", FinancialTransactionHandler.GetTransaction)
+	router.PUT("/financialTransaction/:id", FinancialTransactionHandler.UpdateTransaction)
+	router.DELETE("/financialTransaction/:id", FinancialTransactionHandler.DeleteTransaction)
 }

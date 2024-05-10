@@ -3,6 +3,7 @@ package Handlers
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -10,6 +11,7 @@ import (
 
 	Entities "GraduationProject.com/m/internal/model"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type UserHandler struct {
@@ -334,4 +336,234 @@ func (UserHandler *UserHandler) LoginHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-//Completed by: Yousef Almutairi
+type Report struct {
+	ReportID              string `json:"reportID"`
+	UserID                string `json:"userID"`
+	Type                  string `json:"type,omitempty"`
+	CreateTime            string `json:"createTime,omitempty"`
+	Properties            []Entities.Property
+	Bookings              []Entities.Booking
+	FinancialTransactions []Entities.FinancialTransaction
+	TotalEarnings         int `json:"totalEarnings,omitempty"`
+}
+
+func (UserHandler *UserHandler) GetProperties(userID string) ([]Entities.Property, error) {
+	query := `
+    SELECT 
+        p.PropertyID, 
+        p.OwnerID, 
+        p.Name, 
+        p.CreateTime,
+        a.AddressID, 
+        a.Country, 
+        a.City, 
+        a.State, 
+        a.Street, 
+        a.PostalCode, 
+        a.AdditionalNumber, 
+        a.MapLocation, 
+        a.Latitude, 
+        a.Longitude
+    FROM 
+        Property p
+    LEFT JOIN 
+        Address a ON p.AddressID = a.AddressID
+    WHERE 
+        p.OwnerID = ?
+    `
+	rows, err := UserHandler.db.Query(query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var properties []Entities.Property
+	for rows.Next() {
+		var createTime []byte
+		var property Entities.Property
+		var address Entities.Address
+		if err := rows.Scan(&property.PropertyID, &property.OwnerID, &property.Name, &createTime, &address.AddressID, &address.Country, &address.City, &address.State, &address.Street, &address.PostalCode, &address.AdditionalNumber, &address.MapLocation, &address.Latitude, &address.Longitude); err != nil {
+			return nil, err
+		}
+		property.CreateTime, err = time.Parse("2006-01-02 15:04:05", string(createTime))
+		if err != nil {
+			return nil, err
+		}
+		property.Address = address
+
+		// Get units for the property
+		units, err := UserHandler.GetUnits(property.PropertyID)
+		if err != nil {
+			return nil, err
+		}
+		property.Units = units
+
+		properties = append(properties, property)
+	}
+
+	return properties, nil
+}
+
+func (UserHandler *UserHandler) GetReports(c *gin.Context) {
+	UserHandler.LoadUsersIntoCache()
+	userID := c.Param("id")
+	user, exists := UserHandler.GetUserByID(userID)
+	if !exists {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+	Report, _ := UserHandler.GetReport(user.UserID)
+	//fmt.Println(err.Error())
+	c.JSON(http.StatusOK, Report)
+}
+
+func (UserHandler *UserHandler) GetUnits(propertyID string) ([]Entities.Unit, error) {
+	query := `
+    SELECT 
+        u.UnitID, 
+        u.PropertyID, 
+        u.Name, 
+        u.RentalPrice, 
+        u.Description, 
+        u.Rating, 
+        u.OccupancyStatus, 
+        u.StructuralProperties, 
+        u.CreateTime,
+        a.AddressID, 
+        a.Country, 
+        a.City, 
+        a.State, 
+        a.Street, 
+        a.PostalCode, 
+        a.AdditionalNumber, 
+        a.MapLocation, 
+        a.Latitude, 
+        a.Longitude
+    FROM 
+        Unit u
+    LEFT JOIN 
+        Address a ON u.AddressID = a.AddressID
+    WHERE 
+        u.PropertyID = ?
+    `
+	rows, err := UserHandler.db.Query(query, propertyID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var units []Entities.Unit
+	for rows.Next() {
+		var createTime []byte
+		var unit Entities.Unit
+		var address Entities.Address
+		if err := rows.Scan(&unit.UnitID, &unit.PropertyID, &unit.Name, &unit.RentalPrice, &unit.Description, &unit.Rating, &unit.OccupancyStatus, &unit.StructuralProperties, &createTime, &address.AddressID, &address.Country, &address.City, &address.State, &address.Street, &address.PostalCode, &address.AdditionalNumber, &address.MapLocation, &address.Latitude, &address.Longitude); err != nil {
+			return nil, err
+		}
+		unit.CreateTime, err = time.Parse("2006-01-02 15:04:05", string(createTime))
+		if err != nil {
+			return nil, err
+		}
+		unit.Address = address
+		units = append(units, unit)
+	}
+
+	return units, nil
+}
+
+// Create a report and return it for a userid
+func (UserHandler *UserHandler) GetReport(userID string) (Report, error) {
+	// Get the properties for the user
+	properties, err := UserHandler.GetProperties(userID)
+	if err != nil {
+		return Report{}, err
+	}
+
+	// Get the bookings for the user
+	var bookings []Entities.Booking
+
+	for _, property := range properties {
+		for _, unit := range property.Units {
+			unitBookings, err := UserHandler.GetBookings(unit.UnitID)
+			if err != nil {
+				continue
+			}
+			bookings = append(bookings, unitBookings...)
+		}
+	}
+	var FinancialTransactions []Entities.FinancialTransaction
+	for _, booking := range bookings {
+		transactions, err := UserHandler.GetFinancialTransactions(booking.BookingID)
+		if err != nil {
+			continue
+		}
+		FinancialTransactions = append(FinancialTransactions, transactions...)
+	}
+
+	// Calculate the total earnings for the user
+	var totalEarnings int
+	for _, Transaction := range FinancialTransactions {
+		totalEarnings += Transaction.Amount
+	}
+
+	report := Report{
+		ReportID:              uuid.New().String(),
+		UserID:                userID,
+		Type:                  "Report",
+		CreateTime:            time.Now().Format("2006-01-02 15:04:05"),
+		Properties:            properties,
+		Bookings:              bookings,
+		FinancialTransactions: FinancialTransactions,
+		TotalEarnings:         totalEarnings,
+	}
+
+	return report, nil
+}
+
+func (UserHandler *UserHandler) GetBookings(UnitID string) ([]Entities.Booking, error) {
+	query := `SELECT * FROM Booking WHERE UnitID = ?`
+	rows, err := UserHandler.db.Query(query, UnitID)
+	if err != nil {
+		log.Fatalf("Failed to execute query: %v", err)
+	}
+	defer rows.Close()
+	var bookings []Entities.Booking
+	for rows.Next() {
+		var booking Entities.Booking
+		var createTime []byte
+		var StartDate []byte
+		var EndDate []byte
+		if err := rows.Scan(&booking.BookingID, &booking.UnitID, &booking.UserID, &EndDate, &createTime, &StartDate, &booking.Summary); err != nil {
+			return nil, err
+		}
+		booking.CreateTime, _ = time.Parse("2006-01-02 15:04:05", string(createTime))
+		booking.StartDate, _ = time.Parse("2006-01-02 15:04:05", string(StartDate))
+		booking.EndDate, _ = time.Parse("2006-01-02 15:04:05", string(EndDate))
+		bookings = append(bookings, booking)
+	}
+	return bookings, nil
+}
+
+// Gets all the FinancialTransactions for the bookings for the units of a property
+func (UserHandler *UserHandler) GetFinancialTransactions(BookingID string) ([]Entities.FinancialTransaction, error) {
+	var transactions []Entities.FinancialTransaction
+
+	query := `SELECT TransactionID, UserID, BookingID, PaymentMethod, Amount, CreateTime FROM FinancialTransaction WHERE BookingID = ?`
+	rows, err := UserHandler.db.Query(query, BookingID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var transaction Entities.FinancialTransaction
+		var createTime []byte
+		if err := rows.Scan(&transaction.TransactionID, &transaction.UserID, &transaction.BookingID, &transaction.PaymentMethod, &transaction.Amount, &createTime); err != nil {
+			return nil, err
+		}
+		transaction.CreateTime, _ = time.Parse("2006-01-02 15:04:05", string(createTime))
+		transactions = append(transactions, transaction)
+	}
+
+	return transactions, nil
+}

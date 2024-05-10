@@ -17,6 +17,7 @@ type Property struct {
 	Description string    `json:"description"`
 	Rules       string    `json:"rules"` // Assuming JSON data as a string; adjust according to your needs
 	Address     Address   `json:"address"`
+	Units       []Unit    `json:"units,omitempty"`
 }
 
 func (p *Property) Validate() error {

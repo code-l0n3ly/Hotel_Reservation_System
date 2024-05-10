@@ -102,6 +102,66 @@ func (PropertyHandler *PropertyHandler) CreateProperty(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"status": "success", "message": "Property created successfully", "data": PropertyHandler.cache[property.PropertyID]})
 }
 
+func (PropertyHandler *PropertyHandler) UpdateOrInsertProof(c *gin.Context) {
+	// Get the PropertyID from the URL parameters
+	PropertyID := c.Param("propertyID")
+
+	// Get the Proof from the request body
+	Proof, err := c.GetRawData()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get request body"})
+		return
+	}
+
+	// Check if an image for this property and type is proof
+	query := `SELECT COUNT(*) FROM Images WHERE PropertyID = ? AND Type = 'proof'`
+	row := PropertyHandler.db.QueryRow(query, PropertyID)
+	var count int
+	err = row.Scan(&count)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if count == 0 {
+		// If not, insert a new row
+		insertQuery := `INSERT INTO Images (PropertyID, Type, Image) VALUES (?, 'proof', ?)`
+		_, err := PropertyHandler.db.Exec(insertQuery, PropertyID, Proof)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+	} else {
+		// If yes, update the existing row
+		updateQuery := `UPDATE Images SET Image = ? WHERE PropertyID = ? AND Type = 'proof'`
+		_, err := PropertyHandler.db.Exec(updateQuery, Proof, PropertyID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "success"})
+}
+
+func (PropertyHandler *PropertyHandler) GetProof(c *gin.Context) {
+	// Get the PropertyID from the URL parameters
+	PropertyID := c.Param("propertyID")
+
+	// Execute the SQL query
+	query := `SELECT Image FROM Images WHERE PropertyID = ? AND Type = 'proof'`
+	row := PropertyHandler.db.QueryRow(query, PropertyID)
+	var proof []byte
+	err := row.Scan(&proof)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Send the proof as a response
+	c.Data(http.StatusOK, "application/octet-stream", proof)
+}
+
 func (PropertyHandler *PropertyHandler) GetProperty(c *gin.Context) {
 	ownerID := c.Param("id")
 	PropertyHandler.LoadProperties()

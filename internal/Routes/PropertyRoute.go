@@ -16,5 +16,7 @@ func RegisterPropertyRoutes(router *gin.Engine, PropertyHandler *handler.Propert
 		propertyRoutes.GET("/ByType/:type", PropertyHandler.GetPropertiesByType)
 		propertyRoutes.PUT("/:id", PropertyHandler.UpdateProperty)
 		propertyRoutes.DELETE("/:id", PropertyHandler.DeleteProperty)
+		propertyRoutes.GET("/proof/add/:id", PropertyHandler.UpdateOrInsertProof)
+		propertyRoutes.GET("/proof/get/:id", PropertyHandler.GetProof)
 	}
 }

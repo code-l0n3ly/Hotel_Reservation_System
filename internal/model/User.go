@@ -71,3 +71,5 @@ func (u *User) IsPasswordStrong() bool {
 
 	return hasMinLen && hasUppercase && hasSpecial
 }
+
+// write a function to get all the properties and the units owned by this user and their bookings and their total revenue
