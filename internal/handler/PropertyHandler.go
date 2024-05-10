@@ -146,7 +146,7 @@ func (PropertyHandler *PropertyHandler) UpdateOrInsertProof(c *gin.Context) {
 
 func (PropertyHandler *PropertyHandler) GetProof(c *gin.Context) {
 	// Get the PropertyID from the URL parameters
-	PropertyID := c.Param("propertyID")
+	PropertyID := c.Param("id")
 
 	// Execute the SQL query
 	query := `SELECT Image FROM Images WHERE PropertyID = ? AND Type = 'proof'`
