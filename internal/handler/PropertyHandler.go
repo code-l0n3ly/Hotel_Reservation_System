@@ -3,6 +3,7 @@ package Handlers
 import (
 	"database/sql"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 	"time"
@@ -106,10 +107,18 @@ func (PropertyHandler *PropertyHandler) UpdateOrInsertProof(c *gin.Context) {
 	// Get the PropertyID from the URL parameters
 	PropertyID := c.Param("id")
 
-	// Get the Proof from the request body
-	Proof, err := c.GetRawData()
+	// Get the file from the multipart form data
+	file, _, err := c.Request.FormFile("File")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get request body"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get file from form data"})
+		return
+	}
+	defer file.Close()
+
+	// Read the file into a byte slice
+	Proof, err := ioutil.ReadAll(file)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to read file"})
 		return
 	}
 	fmt.Println(len(Proof)) // Print the size of the Proof byte slice
