@@ -3,7 +3,6 @@ package Handlers
 import (
 	"database/sql"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"strconv"
 	"time"
@@ -107,27 +106,18 @@ func (PropertyHandler *PropertyHandler) UpdateOrInsertProof(c *gin.Context) {
 	// Get the PropertyID from the URL parameters
 	PropertyID := c.Param("id")
 
-	// Get the file from the multipart form data
-	file, _, err := c.Request.FormFile("File")
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get file from form data"})
+	// Get the URL from the form data
+	url, _ := c.GetPostForm("URL")
+	if url == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get URL from form data"})
 		return
 	}
-	defer file.Close()
-
-	// Read the file into a byte slice
-	Proof, err := ioutil.ReadAll(file)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to read file"})
-		return
-	}
-	fmt.Println(len(Proof)) // Print the size of the Proof byte slice
 
 	// Check if an image for this property and type is proof
 	query := `SELECT COUNT(*) FROM Images WHERE PropertyID = ? AND Type = 'proof'`
 	row := PropertyHandler.db.QueryRow(query, PropertyID)
 	var count int
-	err = row.Scan(&count)
+	err := row.Scan(&count)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -136,7 +126,7 @@ func (PropertyHandler *PropertyHandler) UpdateOrInsertProof(c *gin.Context) {
 	if count == 0 {
 		// If not, insert a new row
 		insertQuery := `INSERT INTO Images (PropertyID, Type, Image) VALUES (?, 'proof', ?)`
-		_, err := PropertyHandler.db.Exec(insertQuery, PropertyID, Proof)
+		_, err := PropertyHandler.db.Exec(insertQuery, PropertyID, url)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -144,7 +134,7 @@ func (PropertyHandler *PropertyHandler) UpdateOrInsertProof(c *gin.Context) {
 	} else {
 		// If yes, update the existing row
 		updateQuery := `UPDATE Images SET Image = ? WHERE PropertyID = ? AND Type = 'proof'`
-		_, err := PropertyHandler.db.Exec(updateQuery, Proof, PropertyID)
+		_, err := PropertyHandler.db.Exec(updateQuery, url, PropertyID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
