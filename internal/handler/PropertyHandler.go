@@ -113,6 +113,7 @@ func (PropertyHandler *PropertyHandler) UpdateOrInsertProof(c *gin.Context) {
 		return
 	}
 	fmt.Println(len(Proof)) // Print the size of the Proof byte slice
+
 	// Check if an image for this property and type is proof
 	query := `SELECT COUNT(*) FROM Images WHERE PropertyID = ? AND Type = 'proof'`
 	row := PropertyHandler.db.QueryRow(query, PropertyID)
