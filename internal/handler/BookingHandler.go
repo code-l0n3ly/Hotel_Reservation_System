@@ -173,7 +173,7 @@ func (BookingHandler *BookingHandler) GetBookingsByUserID(c *gin.Context) {
 		}
 	}
 	if len(userBookings) == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"status": "error", "message": "No bookings found for this user"})
+		c.JSON(http.StatusOK, gin.H{"status": "sucess", "message": "No bookings found for this user"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Bookings retrieved successfully", "data": userBookings})

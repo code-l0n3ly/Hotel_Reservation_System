@@ -13,8 +13,10 @@ func RegisterUnitRoutes(router *gin.Engine, UnitHandler *handler.UnitHandler) {
 		units.GET("/", UnitHandler.GetUnits)
 		units.PUT("/:id", UnitHandler.UpdateUnit)
 		units.DELETE("/:id", UnitHandler.DeleteUnit)
-		units.GET("/Available", UnitHandler.GetAllAvailableUnits)
-		units.GET("/Occupied", UnitHandler.GetAllOccupiedUnits)
+		// units.GET("/Available", UnitHandler.GetAllAvailableUnits)
+		// units.GET("/Occupied", UnitHandler.GetAllOccupiedUnits)
+		units.POST("/images/add/:id", UnitHandler.UpdateOrInsertImage)
+		units.GET("/images/get/:id", UnitHandler.GetImages)
 		units.POST("/SearchByName", UnitHandler.SearchUnitsByName)
 		units.POST("/SearchByAddress", UnitHandler.SearchUnitsByAddress)
 	}

@@ -279,7 +279,6 @@ func (PropertyHandler *PropertyHandler) GetUnitsByPropertyID(c *gin.Context) {
         u.RentalPrice, 
         u.Description, 
         u.Rating, 
-        u.OccupancyStatus, 
         u.StructuralProperties, 
         u.CreateTime,
         a.AddressID, 
@@ -311,7 +310,7 @@ func (PropertyHandler *PropertyHandler) GetUnitsByPropertyID(c *gin.Context) {
 		var createTime []byte
 		var unit Entities.Unit
 		var address Entities.Address
-		if err := rows.Scan(&unit.UnitID, &unit.PropertyID, &unit.Name, &unit.RentalPrice, &unit.Description, &unit.Rating, &unit.OccupancyStatus, &unit.StructuralProperties, &createTime, &address.AddressID, &address.Country, &address.City, &address.State, &address.Street, &address.PostalCode, &address.AdditionalNumber, &address.MapLocation, &address.Latitude, &address.Longitude); err != nil {
+		if err := rows.Scan(&unit.UnitID, &unit.PropertyID, &unit.Name, &unit.RentalPrice, &unit.Description, &unit.Rating, &unit.StructuralProperties, &createTime, &address.AddressID, &address.Country, &address.City, &address.State, &address.Street, &address.PostalCode, &address.AdditionalNumber, &address.MapLocation, &address.Latitude, &address.Longitude); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Failed to scan units: " + err.Error()})
 			return
 		}

@@ -27,7 +27,7 @@ func NewUnitHandler(db *sql.DB) *UnitHandler {
 func (UnitHandler *UnitHandler) LoadUnits() error {
 	query := `
     SELECT 
-        u.UnitID, u.PropertyID, u.AddressID, u.Name, u.RentalPrice, u.Description, u.Rating, u.OccupancyStatus, u.StructuralProperties, u.CreateTime,
+        u.UnitID, u.PropertyID, u.AddressID, u.Name, u.RentalPrice, u.Description, u.Rating, u.StructuralProperties, u.CreateTime,
         a.AddressID, a.Country, a.City, a.State, a.Street, a.PostalCode, a.AdditionalNumber, a.MapLocation, a.Latitude, a.Longitude
     FROM 
         Unit u
@@ -51,7 +51,7 @@ func (UnitHandler *UnitHandler) LoadUnits() error {
 		var createTime []byte
 		var unit Entities.Unit
 		var address Entities.Address
-		if err := rows.Scan(&unit.UnitID, &unit.PropertyID, &unit.AddressID, &unit.Name, &unit.RentalPrice, &unit.Description, &unit.Rating, &unit.OccupancyStatus, &unit.StructuralProperties, &createTime, &address.AddressID, &address.Country, &address.City, &address.State, &address.Street, &address.PostalCode, &address.AdditionalNumber, &address.MapLocation, &address.Latitude, &address.Longitude); err != nil {
+		if err := rows.Scan(&unit.UnitID, &unit.PropertyID, &unit.AddressID, &unit.Name, &unit.RentalPrice, &unit.Description, &unit.Rating, &unit.StructuralProperties, &createTime, &address.AddressID, &address.Country, &address.City, &address.State, &address.Street, &address.PostalCode, &address.AdditionalNumber, &address.MapLocation, &address.Latitude, &address.Longitude); err != nil {
 			fmt.Println(err.Error())
 			continue
 		}
@@ -114,8 +114,8 @@ func (UnitHandler *UnitHandler) CreateUnit(c *gin.Context) {
 		return
 	}
 	unit.AddressID = address.AddressID
-	query := `INSERT INTO Unit (PropertyID, AddressID, Name, RentalPrice, Description, Rating, OccupancyStatus, StructuralProperties) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-	result, err := tx.Exec(query, unit.PropertyID, unit.AddressID, unit.Name, unit.RentalPrice, unit.Description, unit.Rating, unit.OccupancyStatus, unit.StructuralProperties)
+	query := `INSERT INTO Unit (PropertyID, AddressID, Name, RentalPrice, Description, Rating, StructuralProperties) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+	result, err := tx.Exec(query, unit.PropertyID, unit.AddressID, unit.Name, unit.RentalPrice, unit.Description, unit.Rating, unit.StructuralProperties)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Failed to create unit" + err.Error()})
 		return
@@ -139,6 +139,75 @@ func (UnitHandler *UnitHandler) CreateUnit(c *gin.Context) {
 	}
 	UnitHandler.LoadUnits()
 	c.JSON(http.StatusCreated, gin.H{"status": "success", "message": "Unit created successfully", "data": UnitHandler.cache[unit.UnitID]})
+}
+
+func (UnitHandler *UnitHandler) UpdateOrInsertImage(c *gin.Context) {
+	// Get the UnitID from the URL parameters
+	UnitID := c.Param("id")
+
+	// Get the URL from the form data
+	Images := c.PostFormArray("Images")
+	if len(Images) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get Images from form data"})
+		return
+	}
+
+	// Iterate over the Images array
+	for _, imageID := range Images {
+		// Check if an image for this unit and type is proof
+		query := `SELECT COUNT(*) FROM Images WHERE UnitID = ? AND ImageID = ? AND Type = 'Unit'`
+		row := UnitHandler.db.QueryRow(query, UnitID, imageID)
+		var count int
+		err := row.Scan(&count)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		if count == 0 {
+			// If not, insert a new row
+			insertQuery := `INSERT INTO Images (UnitID, Type, ImageID) VALUES (?, 'Unit', ?)`
+			_, err := UnitHandler.db.Exec(insertQuery, UnitID, imageID)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+		} else {
+			// If yes, update the existing row
+			updateQuery := `UPDATE Images SET ImageID = ? WHERE UnitID = ? AND Type = 'Unit'`
+			_, err := UnitHandler.db.Exec(updateQuery, imageID, UnitID)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "success"})
+}
+
+// Get the images of the unit from the images table
+func (UnitHandler *UnitHandler) GetImages(c *gin.Context) {
+	UnitID := c.Param("id")
+	query := `SELECT * FROM Images WHERE UnitID = ? AND Type = 'Unit'`
+	rows, err := UnitHandler.db.Query(query, UnitID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+
+	var images []Entities.Image
+	for rows.Next() {
+		var image Entities.Image
+		err := rows.Scan(&image.ImageID, &image.UnitID, &image.UserID, &image.PropertyID, &image.Image, &image.Type)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		images = append(images, image)
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "success", "data": images})
 }
 
 func (UnitHandler *UnitHandler) GetUnit(c *gin.Context) {
@@ -196,11 +265,6 @@ func (UnitHandler *UnitHandler) UpdateUnit(c *gin.Context) {
 		fields = append(fields, "Description = ?")
 		updateUnitParams = append(updateUnitParams, NewInfoUnit.Description)
 		OldInfoUnit.Description = NewInfoUnit.Description
-	}
-	if NewInfoUnit.OccupancyStatus != "" {
-		fields = append(fields, "OccupancyStatus = ?")
-		updateUnitParams = append(updateUnitParams, NewInfoUnit.OccupancyStatus)
-		OldInfoUnit.OccupancyStatus = NewInfoUnit.OccupancyStatus
 	}
 	if NewInfoUnit.StructuralProperties != "" {
 		fields = append(fields, "StructuralProperties = ?")
@@ -314,27 +378,27 @@ func (UnitHandler *UnitHandler) DeleteUnit(c *gin.Context) {
 }
 
 // GetAllUnits : Gets all the units that are available
-func (UnitHandler *UnitHandler) GetAllAvailableUnits(c *gin.Context) {
-	UnitHandler.LoadUnits()
-	var units []Entities.Unit
-	for _, unit := range UnitHandler.cache {
-		if unit.OccupancyStatus == "Available" {
-			units = append(units, unit)
-		}
-	}
-	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Units retrieved successfully", "data": units})
-}
+// func (UnitHandler *UnitHandler) GetAllAvailableUnits(c *gin.Context) {
+// 	UnitHandler.LoadUnits()
+// 	var units []Entities.Unit
+// 	for _, unit := range UnitHandler.cache {
+// 		if unit.OccupancyStatus == "Available" {
+// 			units = append(units, unit)
+// 		}
+// 	}
+// 	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Units retrieved successfully", "data": units})
+// }
 
-func (UnitHandler *UnitHandler) GetAllOccupiedUnits(c *gin.Context) {
-	UnitHandler.LoadUnits()
-	var units []Entities.Unit
-	for _, unit := range UnitHandler.cache {
-		if unit.OccupancyStatus == "Occupied" {
-			units = append(units, unit)
-		}
-	}
-	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Units retrieved successfully", "data": units})
-}
+// func (UnitHandler *UnitHandler) GetAllOccupiedUnits(c *gin.Context) {
+// 	UnitHandler.LoadUnits()
+// 	var units []Entities.Unit
+// 	for _, unit := range UnitHandler.cache {
+// 		if unit.OccupancyStatus == "Occupied" {
+// 			units = append(units, unit)
+// 		}
+// 	}
+// 	c.JSON(http.StatusOK, gin.H{"status": "success", "message": "Units retrieved successfully", "data": units})
+// }
 
 // function that search units by name, let it search if there is a unit with the exact name and then units that contain the name
 func (UnitHandler *UnitHandler) SearchUnitsByName(c *gin.Context) {
