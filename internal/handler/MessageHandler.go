@@ -175,6 +175,9 @@ func (handler *MessageHandler) GetChatBySenderID(c *gin.Context) {
 		if chat.SenderID == senderID {
 			chats = append(chats, chat)
 		}
+		if chat.ReceiverID == senderID {
+			chats = append(chats, chat)
+		}
 	}
 	c.JSON(http.StatusOK, Response{
 		Status:  "success",
