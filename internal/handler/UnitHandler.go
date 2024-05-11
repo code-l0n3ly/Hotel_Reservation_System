@@ -114,7 +114,7 @@ func (UnitHandler *UnitHandler) CreateUnit(c *gin.Context) {
 		return
 	}
 	unit.AddressID = address.AddressID
-	query := `INSERT INTO Unit (PropertyID, AddressID, Name, RentalPrice, Description, Rating, StructuralProperties) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+	query := `INSERT INTO Unit (PropertyID, AddressID, Name, RentalPrice, Description, Rating, StructuralProperties) VALUES (?, ?, ?, ?, ?, ?, ?)`
 	result, err := tx.Exec(query, unit.PropertyID, unit.AddressID, unit.Name, unit.RentalPrice, unit.Description, unit.Rating, unit.StructuralProperties)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"status": "error", "message": "Failed to create unit" + err.Error()})
@@ -442,7 +442,11 @@ func (UnitHandler *UnitHandler) SearchUnitsByAddress(c *gin.Context) {
 	}
 	var units []Entities.Unit
 	for _, unit := range UnitHandler.cache {
-		if strings.EqualFold(unit.Address.PostalCode, Address.PostalCode) || strings.EqualFold(unit.Address.Country, Address.Country) || strings.EqualFold(unit.Address.State, Address.State) || strings.EqualFold(unit.Address.City, Address.City) || strings.EqualFold(unit.Address.Street, Address.Street) {
+		if strings.Contains(strings.ToLower(unit.Address.PostalCode), strings.ToLower(Address.PostalCode)) ||
+			strings.Contains(strings.ToLower(unit.Address.Country), strings.ToLower(Address.Country)) ||
+			strings.Contains(strings.ToLower(unit.Address.State), strings.ToLower(Address.State)) ||
+			strings.Contains(strings.ToLower(unit.Address.City), strings.ToLower(Address.City)) ||
+			strings.Contains(strings.ToLower(unit.Address.Street), strings.ToLower(Address.Street)) {
 			units = append(units, unit)
 		}
 	}
