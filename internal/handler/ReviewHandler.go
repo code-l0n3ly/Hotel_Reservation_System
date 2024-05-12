@@ -23,6 +23,7 @@ func NewReviewHandler(db *sql.DB) *ReviewHandler {
 }
 
 func (ReviewHandler *ReviewHandler) LoadReviews() error {
+	ReviewHandler.cache = make(map[string]Entities.Review)
 	rows, err := ReviewHandler.db.Query(`SELECT ReviewID, UserID, UnitID, Review, Rating, Comment, CreateTime FROM Review`)
 	if err != nil {
 		return err

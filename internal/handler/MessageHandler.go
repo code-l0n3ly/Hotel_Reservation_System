@@ -23,6 +23,7 @@ func NewMessageHandler(db *sql.DB) *MessageHandler {
 }
 
 func (handler *MessageHandler) LoadMessages() error {
+	handler.cache = make(map[string]Entities.Chat)
 	rows, err := handler.db.Query(`SELECT * FROM Chat`)
 	if err != nil {
 		return err

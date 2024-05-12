@@ -25,6 +25,7 @@ func NewUnitHandler(db *sql.DB) *UnitHandler {
 }
 
 func (UnitHandler *UnitHandler) LoadUnits() error {
+	UnitHandler.cache = make(map[string]Entities.Unit)
 	query := `
     SELECT 
         u.UnitID, u.PropertyID, u.AddressID, u.Name, u.RentalPrice, u.Description, u.Rating, u.StructuralProperties, u.CreateTime,

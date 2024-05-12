@@ -24,6 +24,7 @@ func NewBookingHandler(db *sql.DB) *BookingHandler {
 }
 
 func (BookingHandler *BookingHandler) LoadBookings() error {
+	BookingHandler.cache = make(map[string]Entities.Booking)
 	rows, err := BookingHandler.db.Query(`SELECT BookingID, UnitID, UserID, EndDate, CreateTime, StartDate, Summary FROM Booking`)
 	if err != nil {
 		fmt.Println(err.Error())

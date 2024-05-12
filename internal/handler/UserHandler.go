@@ -35,6 +35,7 @@ type Response struct {
 }
 
 func (UserHandler *UserHandler) LoadUsersIntoCache() error {
+	UserHandler.cache = make(map[string]Entities.User)
 	query := `
         SELECT 
             u.UserID, u.AddressID, u.Name, u.PhoneNumber, u.Email, u.Password, u.CreateTime, u.UserRole,

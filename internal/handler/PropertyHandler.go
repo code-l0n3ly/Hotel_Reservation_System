@@ -24,6 +24,7 @@ func NewPropertyHandler(db *sql.DB) *PropertyHandler {
 }
 
 func (PropertyHandler *PropertyHandler) LoadProperties() error {
+	PropertyHandler.cache = make(map[string]Entities.Property)
 	query := `
         SELECT 
             p.PropertyID, p.OwnerID, p.AddressID,  p.Name, p.Description, p.Type, p.Rules, p.CreateTime,

@@ -24,6 +24,7 @@ func NewFinancialTransactionHandler(db *sql.DB) *FinancialTransactionHandler {
 }
 
 func (handler *FinancialTransactionHandler) LoadTransactions() error {
+	handler.cache = make(map[string]Entities.FinancialTransaction)
 	rows, err := handler.db.Query(`SELECT TransactionID, UserID, BookingID, PaymentMethod, Amount, CreateTime FROM FinancialTransaction`)
 	if err != nil {
 		fmt.Println(err.Error())
