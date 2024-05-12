@@ -198,7 +198,7 @@ func (UnitHandler *UnitHandler) UpdateOrInsertImage(c *gin.Context) {
 // Get the images of the unit from the images table
 func (UnitHandler *UnitHandler) GetImages(c *gin.Context) {
 	UnitID := c.Param("id")
-	query := `SELECT * FROM Images WHERE UnitID = ? AND Type = 'Unit'`
+	query := `SELECT ImageID, UnitID, Image, Type FROM Images WHERE UnitID = ? AND Type = 'Unit'`
 	rows, err := UnitHandler.db.Query(query, UnitID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -209,7 +209,7 @@ func (UnitHandler *UnitHandler) GetImages(c *gin.Context) {
 	var images []Entities.Image
 	for rows.Next() {
 		var image Entities.Image
-		err := rows.Scan(&image.ImageID, &image.UnitID, &image.UserID, &image.PropertyID, &image.Image, &image.Type)
+		err := rows.Scan(&image.ImageID, &image.UnitID, &image.Image, &image.Type)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
