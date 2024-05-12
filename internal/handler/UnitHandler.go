@@ -146,36 +146,45 @@ func (UnitHandler *UnitHandler) UpdateOrInsertImage(c *gin.Context) {
 	UnitID := c.Param("id")
 
 	// Get the URL from the form data
-	Images := c.PostFormArray("Images")
-	if len(Images) == 0 {
+	newImages := c.PostFormArray("Images")
+	if len(newImages) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to get Images from form data"})
 		return
 	}
 
-	// Iterate over the Images array
-	for _, imageID := range Images {
-		// Check if an image for this unit and type is proof
-		query := `SELECT COUNT(*) FROM Images WHERE UnitID = ? AND ImageID = ? AND Type = 'Unit'`
-		row := UnitHandler.db.QueryRow(query, UnitID, imageID)
-		var count string
-		err := row.Scan(&count)
-		if err != nil {
+	// Fetch existing images from the database
+	query := `SELECT ImageID FROM Images WHERE UnitID = ? AND Type = 'Unit' LIMIT 4`
+	rows, err := UnitHandler.db.Query(query, UnitID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+
+	var existingImages []string
+	for rows.Next() {
+		var imageID string
+		if err := rows.Scan(&imageID); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		num, err := strconv.Atoi(count)
-		if num == 0 {
-			// If not, insert a new row
-			insertQuery := `INSERT INTO Images (UnitID, Type, ImageID) VALUES (?, 'Unit', ?)`
-			_, err := UnitHandler.db.Exec(insertQuery, UnitID, imageID)
+		existingImages = append(existingImages, imageID)
+	}
+
+	// Iterate over the newImages array
+	for i, newImage := range newImages {
+		if i < len(existingImages) {
+			// If an existing image exists, update it
+			updateQuery := `UPDATE Images SET ImageID = ? WHERE UnitID = ? AND ImageID = ? AND Type = 'Unit'`
+			_, err := UnitHandler.db.Exec(updateQuery, newImage, UnitID, existingImages[i])
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
 			}
 		} else {
-			// If yes, update the existing row
-			updateQuery := `UPDATE Images SET ImageID = ? WHERE UnitID = ? AND Type = 'Unit'`
-			_, err := UnitHandler.db.Exec(updateQuery, imageID, UnitID)
+			// If no existing image exists, insert a new one
+			insertQuery := `INSERT INTO Images (UnitID, Type, ImageID) VALUES (?, 'Unit', ?)`
+			_, err := UnitHandler.db.Exec(insertQuery, UnitID, newImage)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
