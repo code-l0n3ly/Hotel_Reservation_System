@@ -175,7 +175,7 @@ func (UnitHandler *UnitHandler) UpdateOrInsertImage(c *gin.Context) {
 	for i, newImage := range newImages {
 		if i < len(existingImages) {
 			// If an existing image exists, update it
-			updateQuery := `UPDATE Images SET ImageID = ? WHERE UnitID = ? AND ImageID = ? AND Type = 'Unit'`
+			updateQuery := `UPDATE Images SET Image = ? WHERE UnitID = ? AND ImageID = ? AND Type = 'Unit'`
 			_, err := UnitHandler.db.Exec(updateQuery, newImage, UnitID, existingImages[i])
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -183,7 +183,7 @@ func (UnitHandler *UnitHandler) UpdateOrInsertImage(c *gin.Context) {
 			}
 		} else {
 			// If no existing image exists, insert a new one
-			insertQuery := `INSERT INTO Images (UnitID, Type, ImageID) VALUES (?, 'Unit', ?)`
+			insertQuery := `INSERT INTO Images (UnitID, Type, Image) VALUES (?, 'Unit', ?)`
 			_, err := UnitHandler.db.Exec(insertQuery, UnitID, newImage)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
