@@ -426,7 +426,6 @@ func (UserHandler *UserHandler) GetUnits(propertyID string) ([]Entities.Unit, er
         u.RentalPrice, 
         u.Description, 
         u.Rating, 
-        u.OccupancyStatus, 
         u.StructuralProperties, 
         u.CreateTime,
         a.AddressID, 
