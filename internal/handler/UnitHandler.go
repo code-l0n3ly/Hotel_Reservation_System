@@ -157,14 +157,14 @@ func (UnitHandler *UnitHandler) UpdateOrInsertImage(c *gin.Context) {
 		// Check if an image for this unit and type is proof
 		query := `SELECT COUNT(*) FROM Images WHERE UnitID = ? AND ImageID = ? AND Type = 'Unit'`
 		row := UnitHandler.db.QueryRow(query, UnitID, imageID)
-		var count int
+		var count string
 		err := row.Scan(&count)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-
-		if count == 0 {
+		num, err := strconv.Atoi(count)
+		if num == 0 {
 			// If not, insert a new row
 			insertQuery := `INSERT INTO Images (UnitID, Type, ImageID) VALUES (?, 'Unit', ?)`
 			_, err := UnitHandler.db.Exec(insertQuery, UnitID, imageID)
