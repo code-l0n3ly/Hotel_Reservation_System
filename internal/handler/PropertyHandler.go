@@ -186,11 +186,11 @@ func (PropertyHandler *PropertyHandler) GetProperties(c *gin.Context) {
 }
 
 func (PropertyHandler *PropertyHandler) UpdateProperty(c *gin.Context) {
-	ownerID := c.Param("id")
+	PropertyID := c.Param("id")
 	PropertyHandler.LoadProperties()
 
 	var newInfoProperty Entities.Property
-	oldInfoProperty := PropertyHandler.cache[ownerID]
+	oldInfoProperty := PropertyHandler.cache[PropertyID]
 
 	err := c.BindJSON(&newInfoProperty)
 	if err != nil {
@@ -217,8 +217,8 @@ func (PropertyHandler *PropertyHandler) UpdateProperty(c *gin.Context) {
 		oldInfoProperty.Rules = newInfoProperty.Rules
 	}
 
-	query := `UPDATE Property SET Name = ?, Address = ?, Description = ?, Type = ?, Rules = ? WHERE OwnerID = ?`
-	_, err = PropertyHandler.db.Exec(query, oldInfoProperty.Name, oldInfoProperty.Address, oldInfoProperty.Description, oldInfoProperty.Type, oldInfoProperty.Rules, oldInfoProperty.OwnerID)
+	query := `UPDATE Property SET Name = ?, Address = ?, Description = ?, Type = ?, Rules = ? WHERE PropertyID = ?`
+	_, err = PropertyHandler.db.Exec(query, oldInfoProperty.Name, oldInfoProperty.Address, oldInfoProperty.Description, oldInfoProperty.Type, oldInfoProperty.Rules, PropertyID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Failed to update property" + err.Error()})
 		return
@@ -231,7 +231,7 @@ func (PropertyHandler *PropertyHandler) DeleteProperty(c *gin.Context) {
 	ownerID := c.Param("id")
 	PropertyHandler.LoadProperties()
 
-	query := `DELETE FROM Property WHERE OwnerID = ?`
+	query := `DELETE FROM Property WHERE PropertyID = ?`
 	_, err := PropertyHandler.db.Exec(query, ownerID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Failed to delete property" + err.Error()})
