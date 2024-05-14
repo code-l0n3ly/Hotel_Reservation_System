@@ -218,8 +218,8 @@ func (PropertyHandler *PropertyHandler) UpdateProperty(c *gin.Context) {
 		oldInfoProperty.Rules = newInfoProperty.Rules
 	}
 
-	query := `UPDATE Property SET Name = ?, Address = ?, Description = ?, Type = ?, Rules = ? WHERE PropertyID = ?`
-	_, err = PropertyHandler.db.Exec(query, oldInfoProperty.Name, oldInfoProperty.Address, oldInfoProperty.Description, oldInfoProperty.Type, oldInfoProperty.Rules, PropertyID)
+	query := `UPDATE Property SET Name = ?, Description = ?, Type = ?, Rules = ? WHERE PropertyID = ?`
+	_, err = PropertyHandler.db.Exec(query, oldInfoProperty.Name, oldInfoProperty.Description, oldInfoProperty.Type, oldInfoProperty.Rules, PropertyID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "error", "message": "Failed to update property" + err.Error()})
 		return
